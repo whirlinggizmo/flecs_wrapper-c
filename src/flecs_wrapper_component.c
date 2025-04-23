@@ -184,30 +184,17 @@ EXPORT int32_t flecs_component_get_id_by_name(const char *name)
     return 0;
 }
 
-EXPORT bool flecs_component_is_mark_changed_by_name(uint32_t entity_id, const char *component_name)
+
+EXPORT void flecs_component_mark_changed(uint32_t entity_id, uint32_t component_id)
 {
-    int32_t id = get_component_id_by_name(component_name);
-    if (id < 1)
-        return false;
-    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
-    if (!entity_ecs_id)
-        return false;
-    ecs_add_id(world, entity_ecs_id, component_info_table[id].ecs_id);
-    return true;
+    const component_ecs_id = get_component_ecs_id(component_id);
+    if (component_ecs_id == 0) return;
+    const entity_ecs_id = get_entity_ecs_id(entity_id);
+    if (entity_ecs_id == 0) return;
+    
+    ecs_modified_id(world, entity_ecs_id, component_ecs_id);
 }
 
-EXPORT bool flecs_component_is_marked_changed(uint32_t entity_id, uint32_t component_id)
-{
-    if (component_id < 1 || component_id >= component_info_count)
-        return false;
-    if (component_info_table[component_id].ecs_id == 0)
-        return false;
-    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
-    if (!entity_ecs_id)
-        return false;
-    ecs_add_id(world, entity_ecs_id, component_info_table[component_id].ecs_id);
-    return true;
-}
 
 EXPORT bool flecs_component_is_tag(uint32_t component_id)
 {
@@ -502,4 +489,9 @@ EXPORT bool flecs_entity_get_component_vec2(uint32_t entity_id, uint32_t compone
     *x = values[0];
     *y = values[1];
     return true;
+}
+
+EXPORT uint32_t flecs_component_get_id(uint64_t component_ecs_id) 
+{
+    return get_component_id(component_ecs_id);
 }

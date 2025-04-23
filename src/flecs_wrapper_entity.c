@@ -1,4 +1,4 @@
-// lib/flecs_wrapper/src/flecs_wrapper.c
+// lib/flecs_wrapper/src/flecs_wrapper_entity.c
 #define FLECS_OBSERVER
 
 #include "flecs.h"
@@ -125,4 +125,9 @@ EXPORT uint32_t flecs_entity_create(const char *name)
 EXPORT bool flecs_entity_destroy(uint32_t entity_id)
 {
     return destroy_entity(entity_id);
+}
+
+EXPORT uint32_t flecs_entity_get_id(uint64_t entity_ecs_id) 
+{
+    return get_entity_id(entity_ecs_id);
 }
