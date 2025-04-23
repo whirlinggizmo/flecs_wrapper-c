@@ -18,7 +18,6 @@ static void free_trampoline_system_ctx(void *ctx)
     if (!cb_ctx)
         return;
 
-    // val_gc(cb_ctx->callback, false); // pin it?  It's a static function, so no?
     free(cb_ctx);
 }
 
@@ -30,46 +29,6 @@ static ecs_entity_t register_system(
     SystemCallback callback,
     uint32_t callback_id
 ) {
-
-
-    // from flecs.h
-    /** Shorthand for creating a system with ecs_system_init().
- *
- * Example:
- *
- * @code
- * ecs_system(world, {
- *   .entity = ecs_entity(world, {
- *     .name = "MyEntity",
- *     .add = ecs_ids( ecs_dependson(EcsOnUpdate) )
- *   }),
- *   .query.terms = {
- *     { ecs_id(Position) },
- *     { ecs_id(Velocity) }
- *   },
- *   .callback = Move
- * });
- * @endcode
- */
- 
-    /*
-    ecs_system_desc_t desc = {
-        .entity = ecs_entity(world, {
-            .name = "TrampolineSystem",
-            .add = ecs_ids( ecs_dependson(EcsOnUpdate) )
-        }),
-        .callback = TrampolineSystem,
-        .query.terms = {
-            { ecs_id(Position) },
-            { ecs_id(Velocity) }
-        },
-    };
-    ecs_system_init(world, &desc);
-    */
-
-    // The ecs_system_desc_t is used to describe the system to be created
-    // The ecs_term_t is used to describe the components that the system will process
-    // flecs has preallocated arrays for them, so we need to fill them out (and ensure there is a null terminator)
 
     ecs_system_desc_t desc = {0};
     desc.callback = TrampolineSystem;

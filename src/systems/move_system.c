@@ -11,7 +11,7 @@ void MoveSystem(ecs_iter_t *it) {
 
     for (int i = 0; i < it->count; i++) {
         if (v[i].x == 0 && v[i].y == 0) {
-           // continue; // no movement
+            continue; // no movement
         }
 
         float new_x = p[i].x + v[i].x * it->delta_time;

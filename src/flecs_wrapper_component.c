@@ -167,30 +167,6 @@ void clear_component_info_table()
     memset(component_name_values, 0, sizeof(component_name_values));
 }
 
-bool set_entity_component_data(uint32_t entity_id, uint32_t component_id, const void *component_data_ptr)
-{
-    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
-    if (entity_ecs_id == 0)
-        return false;
-    const ComponentInfo *component_info = get_component_info(component_id);
-    if (!component_info)
-        return false;
-    ecs_set_id(world, entity_ecs_id, component_info->ecs_id, component_info->size, component_data_ptr);
-    return true;
-}
-
-const void* get_entity_component_data(uint32_t entity_id, uint32_t component_id)
-{
-    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
-    if (entity_ecs_id == 0)
-        return NULL;
-    const ComponentInfo *component_info = get_component_info(component_id);
-    if (!component_info)
-        return NULL;
-    const void *component_data = ecs_get_id(world, entity_ecs_id, component_info->ecs_id);
-    return component_data;
-}
-
 ///////////////////////////////////////////////////////////////
 
 EXPORT int32_t flecs_component_get_id_by_name(const char *name)
@@ -342,14 +318,28 @@ EXPORT bool flecs_entity_remove_component_by_name(uint32_t entity_id, const char
     return true;
 }
 
-EXPORT bool flecs_entity_set_component_data(uint32_t entity_id, uint32_t component_id, const void *component_data_ptr)
+EXPORT bool flecs_entity_set_component(uint32_t entity_id, uint32_t component_id, const void *component_data_ptr)
 {
-   return set_entity_component_data(entity_id, component_id, component_data_ptr);
+    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
+    if (entity_ecs_id == 0)
+        return false;
+    const ComponentInfo *component_info = get_component_info(component_id);
+    if (!component_info)
+        return false;
+    ecs_set_id(world, entity_ecs_id, component_info->ecs_id, component_info->size, component_data_ptr);
+    return true;
 }
 
-EXPORT const void* flecs_entity_get_component_data(uint32_t entity_id, uint32_t component_id)
+EXPORT const void* flecs_entity_get_component(uint32_t entity_id, uint32_t component_id)
 {
-    return get_entity_component_data(entity_id, component_id);
+    ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
+    if (entity_ecs_id == 0)
+        return NULL;
+    const ComponentInfo *component_info = get_component_info(component_id);
+    if (!component_info)
+        return NULL;
+    const void *component_data = ecs_get_id(world, entity_ecs_id, component_info->ecs_id);
+    return component_data;
 }
 
 // component helpers
