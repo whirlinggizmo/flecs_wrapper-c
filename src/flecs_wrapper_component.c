@@ -185,7 +185,7 @@ EXPORT int32_t flecs_component_get_id_by_name(const char *name)
 }
 
 
-EXPORT void flecs_component_mark_changed(uint32_t entity_id, uint32_t component_id)
+EXPORT void flecs_entity_mark_component(uint32_t entity_id, uint32_t component_id)
 {
     const component_ecs_id = get_component_ecs_id(component_id);
     if (component_ecs_id == 0) return;

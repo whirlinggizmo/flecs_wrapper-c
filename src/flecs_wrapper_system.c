@@ -21,7 +21,6 @@ static void free_trampoline_ctx(void *ctx) {
     if (ctx) free(ctx);
 }
 
-
 // --- ECS callback for batch system ---
 static void trampoline_system(ecs_iter_t *it) {
     TrampolineSystemContext *ctx = (TrampolineSystemContext *)it->callback_ctx;
