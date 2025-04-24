@@ -45,6 +45,7 @@ static void trampoline_system(ecs_iter_t *it) {
             it->count,
             componentPtrs,
             it->field_count,
+            it->delta_time,
             ctx->callback_id
         );
     } else {

@@ -34,6 +34,8 @@ extern "C"
     // Entity lifecycle
     uint32_t flecs_entity_create(const char *name);
     bool flecs_entity_destroy(uint32_t entity_id);
+    uint32_t flecs_entity_get_id(uint64_t entity_ecs_id);
+
 
     // Observer registration
     typedef void (*ObserverCallback)(uint32_t entity_id, uint32_t component_id, uint32_t event_id, void* component_ptr, uint32_t component_size,uint32_t callback_id);
@@ -45,6 +47,7 @@ extern "C"
         int32_t entity_count,          // number of entities in this iteration
         void **components,             // array of component data columns (one per component)
         int32_t component_count,       // number of components in the system
+        float delta_time,           // delta time since last frame
         uint32_t callback_id           // user-defined callback ID (Nim-side dispatch)
     );
     bool flecs_register_system(const char* name, uint32_t *component_ids, uint32_t num_components, SystemCallback callback, uint32_t callback_id);
