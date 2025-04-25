@@ -15,7 +15,7 @@ static uint32_t entity_ecs_id_count = 1; // reserved index 0 for unknown
 // Hash table: ecs_entity_t -> entity_id
 #define ENTITY_HASH_SIZE MAX_ENTITIES * 2 // 2x MAX_ENTITIES for good load factor
 static ecs_entity_t entity_hash_keys[ENTITY_HASH_SIZE] = {0};
-static int32_t entity_hash_values[ENTITY_HASH_SIZE] = {0};
+static uint32_t entity_hash_values[ENTITY_HASH_SIZE] = {0};
 
 
 static inline uint32_t hash_entity(ecs_entity_t id)
@@ -23,7 +23,7 @@ static inline uint32_t hash_entity(ecs_entity_t id)
     return (uint32_t)(id * 2654435761u) & (ENTITY_HASH_SIZE - 1);
 }
 
-static void entity_hash_insert(ecs_entity_t ecs_id, int32_t entity_id)
+static void entity_hash_insert(ecs_entity_t ecs_id, uint32_t entity_id)
 {
     uint32_t index = hash_entity(ecs_id);
     while (entity_hash_keys[index] != 0)
@@ -34,7 +34,7 @@ static void entity_hash_insert(ecs_entity_t ecs_id, int32_t entity_id)
     entity_hash_values[index] = entity_id;
 }
 
-int32_t get_entity_id(ecs_entity_t ecs_id)
+uint32_t get_entity_id(ecs_entity_t ecs_id)
 {
     uint32_t index = hash_entity(ecs_id);
     while (entity_hash_keys[index] != 0)
@@ -46,7 +46,7 @@ int32_t get_entity_id(ecs_entity_t ecs_id)
     return 0;
 }
 
-ecs_entity_t get_entity_ecs_id(int32_t id)
+ecs_entity_t get_entity_ecs_id(uint32_t id)
 {
     if ((uint32_t)id < entity_ecs_id_count)
         return entity_ecs_id_table[id];
@@ -91,7 +91,7 @@ static uint32_t create_entity(const char *name)
     ecs_entity_t entity_ecs_id = ecs_entity(world, {.name = name});
 
     entity_ecs_id_table[id] = entity_ecs_id;        // forward mapping
-    entity_hash_insert(entity_ecs_id, (int32_t)id); // reverse mapping
+    entity_hash_insert(entity_ecs_id, id); // reverse mapping
 
     entity_ecs_id_count++;
     return id;

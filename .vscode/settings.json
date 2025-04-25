@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.nimble": "nimble",
+        "typeinfo": "c"
+    }
+}

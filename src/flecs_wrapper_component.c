@@ -140,6 +140,18 @@ const ecs_entity_t get_component_ecs_id_by_name(const char *name)
     return 0;
 }
 
+const bool is_component_registered(const char* name) 
+{
+    for (uint32_t i = 1; i < component_info_count; ++i)
+    {
+        if (strcmp(component_info_table[i].name, name) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 const uint32_t get_component_size(uint32_t component_id)
 {
     if ((component_id < 1) || (component_id >= component_info_count))
@@ -150,14 +162,13 @@ const uint32_t get_component_size(uint32_t component_id)
     return component_info_table[component_id].size;
 }
 
-
 const uint32_t get_component_size_by_ecs_id(ecs_entity_t ecs_id)
 {
     uint32_t component_id = get_component_id(ecs_id);
     return get_component_size(component_id);
 }
 
-void clear_component_info_table()
+void clear_component_info()
 {
     component_info_count = 1;
     memset(component_info_table, 0, sizeof(component_info_table));
@@ -167,9 +178,62 @@ void clear_component_info_table()
     memset(component_name_values, 0, sizeof(component_name_values));
 }
 
+uint32_t create_component(const char* name, uint32_t size)
+{
+    if (name == NULL || strlen(name) < 1) {
+        fprintf(stderr, "Invalid name provided to create_component()\n");
+        return 0;
+    }
+
+    if (is_component_registered(name)) {
+        fprintf(stderr, "Component %s is already registered\n", name);
+        return 0;
+    }
+
+    if (component_info_count >= MAX_COMPONENTS) {
+        fprintf(stderr, "Unable to register component: %s (Reached MAX_COMPONENTS)\n", name);
+        return 0;
+    }
+
+    ecs_entity_t comp = ecs_component_init(world, &(ecs_component_desc_t){
+        .entity = ecs_entity(world, {
+            .name = name
+        }),
+        .type = {
+            .size = size,
+            .alignment = 8,
+        },
+    });
+
+    if (!comp) {
+        fprintf(stderr, "Failed to register component: %s\n", name);
+        return 0;
+    }
+
+    uint32_t id = component_info_count;
+    component_info_table[id].ecs_id = comp;
+    strncpy(component_info_table[id].name, name, sizeof(component_info_table[id].name) - 1);
+    component_info_table[id].name[sizeof(component_info_table[id].name) - 1] = '\0';
+    component_info_table[id].size = size;
+    component_info_table[id].id = id;
+
+    component_ecs_hash_insert(comp, id);
+    component_name_hash_insert(name, id);
+
+    component_info_count++;
+
+    return id;
+}
+
+
 ///////////////////////////////////////////////////////////////
 
-EXPORT int32_t flecs_component_get_id_by_name(const char *name)
+EXPORT uint32_t flecs_component_create(const char* name, uint32_t size)
+{
+    return create_component(name, size);
+}
+
+EXPORT uint32_t flecs_component_get_id_by_name(const char *name)
 {
     if (name == NULL)
         return 0;
@@ -183,7 +247,6 @@ EXPORT int32_t flecs_component_get_id_by_name(const char *name)
     }
     return 0;
 }
-
 
 EXPORT void flecs_entity_mark_component(uint32_t entity_id, uint32_t component_id)
 {

@@ -13,9 +13,10 @@ extern "C"
 #endif
    
     // Component management
-    int32_t flecs_component_get_id_by_name(const char *name);
+    uint32_t flecs_component_get_id_by_name(const char *name);
     bool flecs_component_is_tag(uint32_t component_id);
     void flecs_component_print_registry(void);
+    uint32_t flecs_component_create(const char* name, uint32_t size);
 
     // Entity component inspection
     void flecs_entity_print_components(uint32_t entity_id);
@@ -44,9 +45,9 @@ extern "C"
     // System registration
     typedef void (*SystemCallback)(
         const uint64_t *entities,  // pointer to array of entity IDs
-        int32_t entity_count,          // number of entities in this iteration
+        uint32_t entity_count,          // number of entities in this iteration
         void **components,             // array of component data columns (one per component)
-        int32_t component_count,       // number of components in the system
+        uint32_t component_count,       // number of components in the system
         float delta_time,           // delta time since last frame
         uint32_t callback_id           // user-defined callback ID (Nim-side dispatch)
     );
