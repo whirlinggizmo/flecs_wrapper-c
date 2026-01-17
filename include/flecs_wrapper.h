@@ -51,7 +51,7 @@ extern "C"
         float delta_time,           // delta time since last frame
         uint32_t callback_id           // user-defined callback ID (Nim-side dispatch)
     );
-    bool flecs_register_system(const char* name, uint32_t *component_ids, uint32_t num_components, SystemCallback callback, uint32_t callback_id);
+    uint32_t flecs_register_system(const char* name, uint32_t *component_ids, uint32_t num_components, SystemCallback callback, uint32_t callback_id);
 
     // Lifecycle management
     void flecs_init(void);

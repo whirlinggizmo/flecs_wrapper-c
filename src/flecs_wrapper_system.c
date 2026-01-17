@@ -142,7 +142,7 @@ static ecs_entity_t register_system_old(
 */
 
 // --- Exported registration for iterator-based systems ---
-EXPORT bool flecs_register_system(
+EXPORT uint32_t flecs_register_system(
     const char* name,
     uint32_t* components,
     uint32_t num_components,
@@ -151,5 +151,5 @@ EXPORT bool flecs_register_system(
 ) {
     ecs_entity_t result = register_system(name, components, num_components, callback, callback_id);
     printf("Registered iterator system '%s' with id: %ld\n", name, result);
-    return result != 0;
+    return result;
 }
