@@ -21,6 +21,7 @@ EXPORT void flecs_init()
         fprintf(stderr, "Unable to initialize world\n");
         return;
     }
+    ecs_set_threads(world, 1);
 }
 
 EXPORT void flecs_progress(float delta_time)
@@ -41,4 +42,14 @@ EXPORT void flecs_fini()
         return;
     }
     ecs_fini(world);
+}
+
+EXPORT void flecs_set_threads(int32_t threads)
+{
+    if (world == NULL)
+    {
+        fprintf(stderr, "Unable to set threads (world not initialized)\n");
+        return;
+    }
+    ecs_set_threads(world, threads);
 }

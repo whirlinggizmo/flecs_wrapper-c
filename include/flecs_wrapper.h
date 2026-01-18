@@ -86,6 +86,7 @@ extern "C"
     void flecs_init(void);
     void flecs_progress(float delta_time);
     void flecs_fini(void);
+    void flecs_set_threads(int32_t threads);
 
     // Version
     const char *flecs_version(void);
