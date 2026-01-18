@@ -394,7 +394,8 @@ EXPORT const void* flecs_entity_get_component(uint32_t entity_id, uint32_t compo
 
 // component helpers
 // TODO:  Move them into their respective component files (i.e. velocity.c, position.c, etc.)
-
+// Commented out known/internal component helpers, trying to keep the API agnostic of any specific components.
+/*
 EXPORT bool flecs_entity_set_velocity(uint32_t entity_id, float x, float y)
 {
     ecs_entity_t entity_ecs_id = get_entity_ecs_id(entity_id);
@@ -553,6 +554,7 @@ EXPORT bool flecs_entity_get_component_vec2(uint32_t entity_id, uint32_t compone
     *y = values[1];
     return true;
 }
+*/
 
 EXPORT uint32_t flecs_component_get_id(uint64_t component_ecs_id) 
 {
