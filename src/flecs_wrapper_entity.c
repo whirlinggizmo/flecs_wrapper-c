@@ -156,7 +156,11 @@ EXPORT bool flecs_entity_destroy(entity_id_t entity_id)
     return destroy_entity(entity_id);
 }
 
+
+// removed export for now, not needed/encouraged
+/*
 EXPORT entity_id_t flecs_entity_get_id(uint64_t entity_ecs_id) 
 {
     return get_entity_id(entity_ecs_id);
 }
+*/

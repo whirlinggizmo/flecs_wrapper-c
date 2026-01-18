@@ -7,6 +7,7 @@
 
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_component.h"
+#include "flecs_wrapper_event.h"
 
 #define EXPORT __attribute__((visibility("default")))
 
@@ -42,7 +43,8 @@ extern "C"
     // Entity lifecycle
     entity_id_t flecs_entity_create(const char *name);
     bool flecs_entity_destroy(entity_id_t entity_id);
-    entity_id_t flecs_entity_get_id(uint64_t entity_ecs_id);
+    // removed export for now, not needed/encouraged
+    // entity_id_t flecs_entity_get_id(uint64_t entity_ecs_id);
 
     // Observer registration
     typedef void (*ObserverCallback)(
@@ -58,7 +60,7 @@ extern "C"
         component_id_t component_id,  // component that triggered the observer
         uint32_t callback_id     // user-defined callback ID
     );
-    bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, uint32_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id);
+    bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id);
 
     // System registration
     typedef void (*SystemCallback)(

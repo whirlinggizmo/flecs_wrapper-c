@@ -148,7 +148,7 @@ static void free_observer_callback_ctx(void *ctx)
 bool register_observer(
     component_id_t *component_ids,
     uint32_t num_components,
-    uint32_t *event_ids,
+    event_id_t *event_ids,
     uint32_t num_events,
     ObserverCallback callback,
     uint32_t callback_id)
@@ -273,7 +273,7 @@ bool register_observer(
 }
 
 
-EXPORT bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, uint32_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
+EXPORT bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
 {
     return register_observer(component_ids, num_components, event_ids, num_events, callback, callback_id);
 }
