@@ -16,6 +16,7 @@ ecs_world_t *init_world() {
     REGISTER_COMPONENT(world, Position);
     REGISTER_COMPONENT(world, Velocity);
     REGISTER_COMPONENT(world, Destination);
+    REGISTER_COMPONENT(world, EntityId);
 
     ECS_SYSTEM(world, DestinationSystem, EcsOnUpdate, Position, Velocity, Destination);
     ECS_SYSTEM(world, MoveSystem, EcsOnUpdate, Position, Velocity);

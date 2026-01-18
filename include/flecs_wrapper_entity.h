@@ -9,10 +9,13 @@ extern "C"
 {
 #endif
 
-    uint32_t get_entity_id(ecs_entity_t ecs_id);
-    ecs_entity_t get_entity_ecs_id(uint32_t id);
-    uint32_t set_entity_id(uint32_t entity_id, ecs_entity_t entity_ecs_id);
+    typedef uint32_t entity_id_t;
 
+    entity_id_t get_entity_id(ecs_entity_t ecs_id);
+    ecs_entity_t get_entity_ecs_id(entity_id_t id);
+
+    // TODO: Investigate if we need this.  Maybe for reconstituting the world after a save/load?
+    //uint32_t set_entity_id(entity_id_t entity_id, ecs_entity_t entity_ecs_id);
 #ifdef __cplusplus
 }
 #endif

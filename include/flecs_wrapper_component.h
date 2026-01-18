@@ -13,10 +13,12 @@ extern "C"
 
 #define MAX_COMPONENTS 256
 
+    typedef uint32_t component_id_t;
+
     typedef struct ComponentInfo
     {
         ecs_entity_t ecs_id;
-        uint32_t id;
+        component_id_t id;
         char name[32];
         size_t size;
     } ComponentInfo;
@@ -24,21 +26,21 @@ extern "C"
     extern uint32_t component_info_count;
     extern ComponentInfo component_info_table[];
     
-    void component_ecs_hash_insert(ecs_entity_t ecs_id, uint32_t id);
-    void component_name_hash_insert(const char *name, uint32_t id);
-    const ComponentInfo *get_component_info(uint32_t component_id);
+    void component_ecs_hash_insert(ecs_entity_t ecs_id, component_id_t id);
+    void component_name_hash_insert(const char *name, component_id_t id);
+    const ComponentInfo *get_component_info(component_id_t component_id);
 
     const ComponentInfo *get_component_info_by_name(const char *name);
 
-    uint32_t get_component_id(ecs_entity_t ecs_id);
+    component_id_t get_component_id(ecs_entity_t ecs_id);
 
-    uint32_t get_component_id_by_name(const char *name);
+    component_id_t get_component_id_by_name(const char *name);
 
-    const ecs_entity_t get_component_ecs_id(uint32_t component_id);
+    const ecs_entity_t get_component_ecs_id(component_id_t component_id);
 
     const ecs_entity_t get_component_ecs_id_by_name(const char *name);
 
-    const uint32_t get_component_size(uint32_t component_id);
+    const uint32_t get_component_size(component_id_t component_id);
 
     const uint32_t get_component_size_by_ecs_id(ecs_entity_t ecs_id);
     

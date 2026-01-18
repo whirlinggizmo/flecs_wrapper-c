@@ -5,7 +5,7 @@
 #include "flecs.h"
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_component.h"
-#include "flecs_wrapper_entity.h"
+#include "flecs_wrapper_components.h"
 
 #include "flecs_wrapper_world.h" // for world access
 
@@ -51,24 +51,44 @@ ecs_entity_t get_event_ecs_id(uint32_t event_id)
 
 // observer
 // defined in flecs_wrapper_event.h
-// typedef void (*ObserverCallback)(uint32_t entity_id, uint32_t component_id, uint32_t event_id, void* component_ptr, uint32_t component_size,uint32_t callback_id);
+// typedef void (*ObserverCallback)(const uint32_t *entity_ids, uint32_t entity_count, void **columns,
+//     const uint32_t *column_component_ids, const uint32_t *column_sizes, uint32_t column_count,
+//     uint32_t event_id, uint32_t component_id, uint32_t callback_id);
 
 typedef struct ObserverCallbackContext
 {
     ObserverCallback callback;
     uint32_t callback_id;
+    uint32_t field_count;
+    ecs_id_t field_ids[FLECS_TERM_COUNT_MAX];
+    size_t field_sizes[FLECS_TERM_COUNT_MAX];
+    int32_t entity_id_field_index;
+    int32_t event_field_index;
+    uint32_t column_count;
+    component_id_t column_component_ids[FLECS_TERM_COUNT_MAX];
+    uint32_t column_sizes[FLECS_TERM_COUNT_MAX];
+    int32_t column_term_indices[FLECS_TERM_COUNT_MAX];
 } ObserverCallbackContext;
+
+_Static_assert(sizeof(EntityId) == sizeof(uint32_t), "EntityId must be a 32-bit handle");
 
 // A simple static callback that is registered with flecs observers.
 static void on_observed_component_changed(ecs_iter_t *it)
 {
+    const ObserverCallbackContext *ctx = it->callback_ctx;
+    if (!ctx) {
+        fprintf(stderr, "⚠️ Missing observer context in iterator callback\n");
+        return;
+    }
 
-    // find out which field/term matches the event component
-    int8_t t = -1;
-    for (int8_t fi = 0; fi < it->field_count; fi++) {
-        if (ecs_field_id(it, fi) == it->event_id) {
-            t = fi;
-            break;
+    int8_t t = (int8_t)ctx->event_field_index; // fast path for single-term observers
+    if (t < 0) {
+        // find out which field/term matches the event component
+        for (int8_t fi = 0; fi < (int8_t)ctx->field_count; fi++) {
+            if (ctx->field_ids[fi] == it->event_id) {
+                t = fi;
+                break;
+            }
         }
     }
     if (t == -1) {
@@ -76,27 +96,41 @@ static void on_observed_component_changed(ecs_iter_t *it)
         return;
     }
 
-    size_t size = ecs_field_size(it, t);          
-    void  *column = ecs_field_w_size(it, 0, t);   /* pass 0 = “don’t check” */
+    if (ctx->entity_id_field_index < 0 || ctx->entity_id_field_index >= (int32_t)ctx->field_count) {
+        fprintf(stderr, "⚠️ Missing EntityId column in observer callback\n");
+        return;
+    }
+    const EntityId *entity_ids_component = ecs_field_w_size(it, sizeof(EntityId), ctx->entity_id_field_index);
+    if (!entity_ids_component) {
+        fprintf(stderr, "⚠️ Missing EntityId data in observer callback\n");
+        return;
+    }
+    const entity_id_t *entity_ids = &entity_ids_component[0].value;
 
-
-    uint32_t component_id = get_component_id(it->event_id);
+    component_id_t component_id = get_component_id(it->event_id);
     uint32_t event_id = get_event_id(it->event);
 
     //const ComponentInfo *ci = get_component_info(cid);
     //size_t   size = ci->size;
     //void *column = ecs_field_w_size(it, size, 0);   /* term 0 */
 
-    for (int i = 0; i < it->count; i++) {
-        uint32_t entity_id   = get_entity_id(it->entities[i]);
+    void *column_ptrs[FLECS_TERM_COUNT_MAX] = {0};
+    for (uint32_t i = 0; i < ctx->column_count; i++) {
+        column_ptrs[i] = ecs_field_w_size(it, (size_t)ctx->column_sizes[i], ctx->column_term_indices[i]);
+    }
 
-        void *comp_i = (char*)column + i * size;
-
-        const ObserverCallbackContext *ctx = it->callback_ctx;
-        if (ctx && ctx->callback) {
-            //printf("Entity: %u Component: %s Event: %s Size: %zu\n", entity_id, ecs_get_name(world, it->event_id), ecs_get_name(world, it->event), size);
-            ctx->callback(entity_id, component_id, event_id, comp_i, (uint32_t)size, ctx->callback_id);
-        }
+    if (ctx->callback) {
+        ctx->callback(
+            entity_ids,
+            (uint32_t)it->count,
+            column_ptrs,
+            ctx->column_component_ids,
+            ctx->column_sizes,
+            ctx->column_count,
+            event_id,
+            component_id,
+            ctx->callback_id
+        );
     }
 }
 
@@ -112,7 +146,7 @@ static void free_observer_callback_ctx(void *ctx)
 
 // A wrapper function to register an observer
 bool register_observer(
-    uint32_t *component_ids,
+    component_id_t *component_ids,
     uint32_t num_components,
     uint32_t *event_ids,
     uint32_t num_events,
@@ -129,6 +163,27 @@ bool register_observer(
 
     ecs_observer_desc_t desc = {0};
     desc.callback = on_observed_component_changed;
+    uint32_t entity_id_component = flecs_component_get_id_by_name("EntityId");
+    if (entity_id_component == 0) {
+        fprintf(stderr, "Unabled to register observer (EntityId component not registered)\n");
+        return false;
+    }
+
+    bool has_entity_id = false;
+    for (uint32_t i = 0; i < num_components; i++) {
+        if (component_ids[i] == entity_id_component) {
+            has_entity_id = true;
+            break;
+        }
+    }
+
+    uint32_t effective_count = num_components + (has_entity_id ? 0 : 1);
+    if (effective_count > FLECS_TERM_COUNT_MAX)
+    {
+        fprintf(stderr, "Too many terms! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
+        return false;
+    }
+
     uint32_t i = 0;
     for (i = 0; i < num_events; i++)
     {
@@ -141,22 +196,68 @@ bool register_observer(
     }
     desc.events[i] = 0; // null terminator required
 
+    ObserverCallbackContext *callback_ctx = malloc(sizeof(ObserverCallbackContext));
+    if (!callback_ctx) {
+        fprintf(stderr, "Failed to allocate observer context\n");
+        return false;
+    }
+    callback_ctx->callback_id = callback_id;
+    callback_ctx->callback = callback;
+    callback_ctx->field_count = effective_count;
+    callback_ctx->entity_id_field_index = -1;
+    callback_ctx->event_field_index = -1;
+
+    uint32_t out_term = 0;
+    uint32_t out_col = 0;
     for (uint32_t i = 0; i < num_components; i++)
     {
+        if (component_ids[i] == entity_id_component) {
+            continue;
+        }
+
         const ComponentInfo *component_info = get_component_info(component_ids[i]);
         if (component_info == NULL)
         {
             fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", component_ids[i]);
+            free(callback_ctx);
             return false;
         }
-        desc.query.terms[i].id = component_info->ecs_id;
+        desc.query.terms[out_term].id = component_info->ecs_id;
+        callback_ctx->field_ids[out_term] = component_info->ecs_id;
+        callback_ctx->field_sizes[out_term] = component_info->size;
+
+        callback_ctx->column_component_ids[out_col] = component_ids[i];
+        callback_ctx->column_sizes[out_col] = (uint32_t)component_info->size;
+        callback_ctx->column_term_indices[out_col] = (int32_t)out_term;
+        out_col++;
+        out_term++;
+        if (out_term >= FLECS_TERM_COUNT_MAX) {
+            fprintf(stderr, "Unabled to register observer (too many terms)\n");
+            free(callback_ctx);
+            return false;
+        }
     }
 
-    ObserverCallbackContext *callback_ctx = malloc(sizeof(ObserverCallbackContext));
-    callback_ctx->callback_id = callback_id;
-    callback_ctx->callback = callback;
-    // val_gc(callback_ctx->callback, true); // pin it?  It's a static function, so no?
+    callback_ctx->column_count = out_col;
+    if (num_components == 1 && component_ids[0] != entity_id_component) {
+        callback_ctx->event_field_index = 0;
+    }
 
+    const ComponentInfo *entity_id_info = get_component_info(entity_id_component);
+    if (!entity_id_info) {
+        fprintf(stderr, "Unabled to register observer (EntityId component info missing)\n");
+        free(callback_ctx);
+        return false;
+    }
+    desc.query.terms[out_term].id = entity_id_info->ecs_id;
+    callback_ctx->field_ids[out_term] = entity_id_info->ecs_id;
+    callback_ctx->field_sizes[out_term] = entity_id_info->size;
+    callback_ctx->entity_id_field_index = (int32_t)out_term;
+    out_term++;
+
+    desc.query.terms[out_term] = (ecs_term_t){0};
+
+    // val_gc(callback_ctx->callback, true); // pin it?  It's a static function, so no?
     desc.callback_ctx = callback_ctx;
     desc.callback_ctx_free = free_observer_callback_ctx;
 
@@ -172,7 +273,7 @@ bool register_observer(
 }
 
 
-EXPORT bool flecs_register_observer(uint32_t *component_ids, uint32_t num_components, uint32_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
+EXPORT bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, uint32_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
 {
     return register_observer(component_ids, num_components, event_ids, num_events, callback, callback_id);
 }

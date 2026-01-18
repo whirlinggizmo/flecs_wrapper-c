@@ -3,25 +3,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "flecs.h"
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_component.h"
+#include "flecs_wrapper_components.h"
 #include "flecs_wrapper_world.h"
-//#include "systems/trampoline_system.h" // for TrampolineSystem & TrampolineSystemContext
 
 typedef struct TrampolineSystemContext
 {
     SystemCallback callback;
     uint32_t callback_id;
+
+    // Host-visible columns (requested components only; EntityId excluded)
+    uint32_t column_count;
+    component_id_t column_component_ids[FLECS_TERM_COUNT_MAX];
+    uint32_t column_sizes[FLECS_TERM_COUNT_MAX];
+
+    // Iterator terms = host columns + 1 EntityId term at the end
+    uint32_t term_count;
+    int32_t entity_id_term_index; // 0-based term index within iterator terms
 } TrampolineSystemContext;
 
-// --- Cleanup for batch trampoline ---
 static void free_trampoline_ctx(void *ctx) {
-    if (ctx) free(ctx);
+    free(ctx);
 }
 
-// --- ECS callback for batch system ---
 static void trampoline_system(ecs_iter_t *it) {
     TrampolineSystemContext *ctx = (TrampolineSystemContext *)it->callback_ctx;
     if (!ctx) {
@@ -29,22 +37,39 @@ static void trampoline_system(ecs_iter_t *it) {
         return;
     }
 
-    // Build a temporary ptr array just like before
-    void *componentPtrs[FLECS_TERM_COUNT_MAX] = {0};
+    void *column_ptrs[FLECS_TERM_COUNT_MAX] = {0};
 
-    for (int i = 0; i < it->field_count; i++) {
-        ecs_id_t component_ecs_id = ecs_field_id(it, i);
-        size_t component_size = get_component_size_by_ecs_id(component_ecs_id);
-        componentPtrs[i] = ecs_field_w_size(it, component_size, i);
+    // Terms for requested columns are first, in the same order as ctx->column_* arrays.
+    // ecs_field_w_size uses 1-based term index.
+    for (uint32_t i = 0; i < ctx->column_count; i++) {
+        column_ptrs[i] = ecs_field_w_size(it, (size_t)ctx->column_sizes[i], (int32_t)i + 1);
     }
 
-    // Now call the stored callback from the context
+    if (ctx->entity_id_term_index < 0 || ctx->entity_id_term_index >= (int32_t)ctx->term_count) {
+        fprintf(stderr, "⚠️ Missing EntityId term in system callback\n");
+        return;
+    }
+
+    const EntityId *entity_ids_component =
+        (const EntityId *)ecs_field_w_size(it, sizeof(EntityId), ctx->entity_id_term_index + 1);
+
+    if (!entity_ids_component) {
+        // This should not happen if EntityId is required/AND'ed, but be defensive.
+        fprintf(stderr, "⚠️ EntityId column pointer was NULL\n");
+        return;
+    }
+    const entity_id_t *entity_ids = &entity_ids_component[0].value;
+
     if (ctx->callback) {
         ctx->callback(
-            it->entities,
-            it->count,
-            componentPtrs,
-            it->field_count,
+            entity_ids,
+            (uint32_t)it->count,
+
+            column_ptrs,
+            ctx->column_component_ids,
+            ctx->column_sizes,
+            ctx->column_count,
+
             it->delta_time,
             ctx->callback_id
         );
@@ -53,15 +78,40 @@ static void trampoline_system(ecs_iter_t *it) {
     }
 }
 
-
-// --- Registration for batch-based iterator systems ---
 static ecs_entity_t register_system(
     const char* name,
-    uint32_t* components,
+    component_id_t* components,
     uint32_t num_components,
     SystemCallback callback,
     uint32_t callback_id
 ) {
+    FLECS_WRAPPER_ASSERT_WORLD();
+
+    if (!callback) {
+        fprintf(stderr, "Unable to register system '%s' (callback is NULL)\n", name);
+        return 0;
+    }
+
+    if (num_components > FLECS_TERM_COUNT_MAX) {
+        fprintf(stderr, "Too many components! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
+        return 0;
+    }
+
+    component_id_t entity_id_component = flecs_component_get_id_by_name("EntityId");
+    if (entity_id_component == 0) {
+        fprintf(stderr, "Unable to register system '%s' (EntityId component not registered)\n", name);
+        return 0;
+    }
+
+    TrampolineSystemContext *cb_ctx = (TrampolineSystemContext *)calloc(1, sizeof(TrampolineSystemContext));
+    if (!cb_ctx) {
+        fprintf(stderr, "Failed to allocate system context\n");
+        return 0;
+    }
+
+    cb_ctx->callback = callback;
+    cb_ctx->callback_id = callback_id;
+
     ecs_system_desc_t desc = {0};
     desc.callback = trampoline_system;
     desc.entity = ecs_entity(world, {
@@ -69,87 +119,82 @@ static ecs_entity_t register_system(
         .add = ecs_ids(ecs_dependson(EcsOnUpdate))
     });
 
-    if (num_components > FLECS_TERM_COUNT_MAX) {
-        fprintf(stderr, "Too many components! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
+    // Build terms and host-visible column metadata.
+    // If caller includes EntityId, we drop it from columns; we always provide entity_ids separately.
+    uint32_t out_col = 0;
+    for (uint32_t i = 0; i < num_components; i++) {
+        if (components[i] == entity_id_component) {
+            continue;
+        }
+
+        const ComponentInfo *ci = get_component_info(components[i]);
+        if (!ci) {
+            fprintf(stderr, "Unable to register system '%s' (component_id %u not found)\n", name, components[i]);
+            free(cb_ctx);
+            return 0;
+        }
+
+        desc.query.terms[out_col].id = ci->ecs_id;
+        desc.query.terms[out_col].oper = EcsAnd;
+
+        cb_ctx->column_component_ids[out_col] = components[i];
+        cb_ctx->column_sizes[out_col] = (uint32_t)ci->size;
+
+        out_col++;
+        if (out_col >= FLECS_TERM_COUNT_MAX) {
+            fprintf(stderr, "Unable to register system '%s' (too many columns)\n", name);
+            free(cb_ctx);
+            return 0;
+        }
+    }
+
+    cb_ctx->column_count = out_col;
+
+    // Append EntityId as internal required term (always last term).
+    const ComponentInfo *eid_ci = get_component_info(entity_id_component);
+    if (!eid_ci) {
+        fprintf(stderr, "Unable to register system '%s' (EntityId component info missing)\n", name);
+        free(cb_ctx);
         return 0;
     }
 
-    for (uint32_t i = 0; i < num_components; i++) {
-        const ComponentInfo *component_info = get_component_info(components[i]);
-        if (!component_info) {
-            fprintf(stderr, "Unable to register iter system (component_id %u not found)\n", components[i]);
-            return 0;
-        }
-        desc.query.terms[i].id = component_info->ecs_id;
-        desc.query.terms[i].oper = EcsAnd;
+    uint32_t eid_term = cb_ctx->column_count;
+    if (eid_term >= FLECS_TERM_COUNT_MAX) {
+        fprintf(stderr, "Unable to register system '%s' (too many terms incl EntityId)\n", name);
+        free(cb_ctx);
+        return 0;
     }
-    desc.query.terms[num_components] = (ecs_term_t){0};
 
-    TrampolineSystemContext *cb_ctx = malloc(sizeof(TrampolineSystemContext));
-    cb_ctx->callback = callback;          
-    cb_ctx->callback_id = callback_id;
+    desc.query.terms[eid_term].id = eid_ci->ecs_id;
+    desc.query.terms[eid_term].oper = EcsAnd;
+
+    cb_ctx->entity_id_term_index = (int32_t)eid_term;
+    cb_ctx->term_count = eid_term + 1;
+
+    // Terminate terms array
+    desc.query.terms[cb_ctx->term_count] = (ecs_term_t){0};
 
     desc.callback_ctx = cb_ctx;
     desc.callback_ctx_free = free_trampoline_ctx;
 
-    ecs_entity_t system = ecs_system_init(world, &desc);
-    return system;
-}
-
-
-// --- Registration for per-entity systems (original) ---
-/*
-static ecs_entity_t register_system_old(
-    const char* name,
-    uint32_t* components,
-    uint32_t num_components,
-    SystemCallback callback,
-    uint32_t callback_id
-) {
-    ecs_system_desc_t desc = {0};
-    desc.callback = TrampolineSystem;
-    desc.entity = ecs_entity(world, {
-        .name = name,
-        .add = ecs_ids(ecs_dependson(EcsOnUpdate))
-    });
-
-    if (num_components > FLECS_TERM_COUNT_MAX) {
-        fprintf(stderr, "Too many components! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
+    ecs_entity_t sys = ecs_system_init(world, &desc);
+    if (!sys) {
+        // Be conservative: Flecs may not call callback_ctx_free on init failure.
+        free(cb_ctx);
         return 0;
     }
 
-    for (uint32_t i = 0; i < num_components; i++) {
-        const ComponentInfo *component_info = get_component_info(components[i]);
-        if (!component_info) {
-            fprintf(stderr, "Unable to register system (component_id %u not found)\n", components[i]);
-            return 0;
-        }
-        desc.query.terms[i].id = component_info->ecs_id;
-        desc.query.terms[i].oper = EcsAnd;
-    }
-    desc.query.terms[num_components] = (ecs_term_t){0};
-
-    TrampolineSystemContext *cb_ctx = malloc(sizeof(TrampolineSystemContext));
-    cb_ctx->callback = callback;
-    cb_ctx->callback_id = callback_id;
-
-    desc.callback_ctx = cb_ctx;
-    desc.callback_ctx_free = free_trampoline_system_ctx;
-
-    ecs_entity_t system = ecs_system_init(world, &desc);
-    return system;
+    return sys;
 }
-*/
 
-// --- Exported registration for iterator-based systems ---
 EXPORT uint32_t flecs_register_system(
     const char* name,
-    uint32_t* components,
+    component_id_t* components,
     uint32_t num_components,
     SystemCallback callback,
     uint32_t callback_id
 ) {
     ecs_entity_t result = register_system(name, components, num_components, callback, callback_id);
-    printf("Registered iterator system '%s' with id: %ld\n", name, result);
-    return result;
+    printf("Registered iterator system '%s' with id: %lu\n", name, (unsigned long)result);
+    return (uint32_t)result;
 }
