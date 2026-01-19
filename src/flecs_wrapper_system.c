@@ -40,9 +40,15 @@ static void trampoline_system(ecs_iter_t *it) {
     void *column_ptrs[FLECS_TERM_COUNT_MAX] = {0};
 
     // Terms for requested columns are first, in the same order as ctx->column_* arrays.
-    // ecs_field_w_size uses 1-based term index.
+    // ecs_field_w_size uses 0-based field indices.
     for (uint32_t i = 0; i < ctx->column_count; i++) {
-        column_ptrs[i] = ecs_field_w_size(it, (size_t)ctx->column_sizes[i], (int32_t)i + 1);
+        column_ptrs[i] = ecs_field_w_size(it, (size_t)ctx->column_sizes[i], (int32_t)i);
+        if (!column_ptrs[i]) {
+            fprintf(stderr, "[flecs_wrapper] column %u pointer is NULL (size=%u)\n",
+                i,
+                ctx->column_sizes[i]
+            );
+        }
     }
 
     if (ctx->entity_id_term_index < 0 || ctx->entity_id_term_index >= (int32_t)ctx->term_count) {
@@ -51,7 +57,7 @@ static void trampoline_system(ecs_iter_t *it) {
     }
 
     const EntityId *entity_ids_component =
-        (const EntityId *)ecs_field_w_size(it, sizeof(EntityId), ctx->entity_id_term_index + 1);
+        (const EntityId *)ecs_field_w_size(it, sizeof(EntityId), ctx->entity_id_term_index);
 
     if (!entity_ids_component) {
         // This should not happen if EntityId is required/AND'ed, but be defensive.
@@ -78,10 +84,12 @@ static void trampoline_system(ecs_iter_t *it) {
     }
 }
 
-static ecs_entity_t register_system(
+static ecs_entity_t register_system_ex(
     const char* name,
-    component_id_t* components,
-    uint32_t num_components,
+    component_id_t* include_components,
+    uint32_t num_include_components,
+    component_id_t* exclude_components,
+    uint32_t num_exclude_components,
     SystemCallback callback,
     uint32_t callback_id
 ) {
@@ -92,8 +100,8 @@ static ecs_entity_t register_system(
         return 0;
     }
 
-    if (num_components > FLECS_TERM_COUNT_MAX) {
-        fprintf(stderr, "Too many components! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
+    if (num_include_components + num_exclude_components + 1 > FLECS_TERM_COUNT_MAX) {
+        fprintf(stderr, "Too many components! Max allowed (incl EntityId): %d\n", FLECS_TERM_COUNT_MAX);
         return 0;
     }
 
@@ -122,14 +130,14 @@ static ecs_entity_t register_system(
     // Build terms and host-visible column metadata.
     // If caller includes EntityId, we drop it from columns; we always provide entity_ids separately.
     uint32_t out_col = 0;
-    for (uint32_t i = 0; i < num_components; i++) {
-        if (components[i] == entity_id_component) {
+    for (uint32_t i = 0; i < num_include_components; i++) {
+        if (include_components[i] == entity_id_component) {
             continue;
         }
 
-        const ComponentInfo *ci = get_component_info(components[i]);
+        const ComponentInfo *ci = get_component_info(include_components[i]);
         if (!ci) {
-            fprintf(stderr, "Unable to register system '%s' (component_id %u not found)\n", name, components[i]);
+            fprintf(stderr, "Unable to register system '%s' (component_id %u not found)\n", name, include_components[i]);
             free(cb_ctx);
             return 0;
         }
@@ -137,7 +145,7 @@ static ecs_entity_t register_system(
         desc.query.terms[out_col].id = ci->ecs_id;
         desc.query.terms[out_col].oper = EcsAnd;
 
-        cb_ctx->column_component_ids[out_col] = components[i];
+        cb_ctx->column_component_ids[out_col] = include_components[i];
         cb_ctx->column_sizes[out_col] = (uint32_t)ci->size;
 
         out_col++;
@@ -150,6 +158,33 @@ static ecs_entity_t register_system(
 
     cb_ctx->column_count = out_col;
 
+    // Append exclude terms after include terms (not part of columns).
+    uint32_t out_term = cb_ctx->column_count;
+    for (uint32_t i = 0; i < num_exclude_components; i++) {
+        if (exclude_components[i] == entity_id_component) {
+            fprintf(stderr, "Unable to register system '%s' (EntityId cannot be excluded)\n", name);
+            free(cb_ctx);
+            return 0;
+        }
+
+        const ComponentInfo *ci = get_component_info(exclude_components[i]);
+        if (!ci) {
+            fprintf(stderr, "Unable to register system '%s' (exclude component_id %u not found)\n", name, exclude_components[i]);
+            free(cb_ctx);
+            return 0;
+        }
+
+        if (out_term >= FLECS_TERM_COUNT_MAX) {
+            fprintf(stderr, "Unable to register system '%s' (too many terms)\n", name);
+            free(cb_ctx);
+            return 0;
+        }
+
+        desc.query.terms[out_term].id = ci->ecs_id;
+        desc.query.terms[out_term].oper = EcsNot;
+        out_term++;
+    }
+
     // Append EntityId as internal required term (always last term).
     const ComponentInfo *eid_ci = get_component_info(entity_id_component);
     if (!eid_ci) {
@@ -158,7 +193,7 @@ static ecs_entity_t register_system(
         return 0;
     }
 
-    uint32_t eid_term = cb_ctx->column_count;
+    uint32_t eid_term = out_term;
     if (eid_term >= FLECS_TERM_COUNT_MAX) {
         fprintf(stderr, "Unable to register system '%s' (too many terms incl EntityId)\n", name);
         free(cb_ctx);
@@ -194,7 +229,29 @@ EXPORT uint32_t flecs_register_system(
     SystemCallback callback,
     uint32_t callback_id
 ) {
-    ecs_entity_t result = register_system(name, components, num_components, callback, callback_id);
+    ecs_entity_t result = register_system_ex(name, components, num_components, NULL, 0, callback, callback_id);
+    printf("Registered iterator system '%s' with id: %lu\n", name, (unsigned long)result);
+    return (uint32_t)result;
+}
+
+EXPORT uint32_t flecs_register_system_ex(
+    const char* name,
+    component_id_t* include_components,
+    uint32_t num_include_components,
+    component_id_t* exclude_components,
+    uint32_t num_exclude_components,
+    SystemCallback callback,
+    uint32_t callback_id
+) {
+    ecs_entity_t result = register_system_ex(
+        name,
+        include_components,
+        num_include_components,
+        exclude_components,
+        num_exclude_components,
+        callback,
+        callback_id
+    );
     printf("Registered iterator system '%s' with id: %lu\n", name, (unsigned long)result);
     return (uint32_t)result;
 }

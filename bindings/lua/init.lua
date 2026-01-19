@@ -1,0 +1,1 @@
+return require("flecs_wrapper.bindings.lua.flecs")

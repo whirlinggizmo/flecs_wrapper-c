@@ -82,6 +82,14 @@ extern "C"
         uint32_t num_components,
         SystemCallback callback,
         uint32_t callback_id);
+    uint32_t flecs_register_system_ex(
+        const char *name,
+        component_id_t *include_component_ids,
+        uint32_t num_include_components,
+        component_id_t *exclude_component_ids,
+        uint32_t num_exclude_components,
+        SystemCallback callback,
+        uint32_t callback_id);
     // Lifecycle management
     void flecs_init(void);
     void flecs_progress(float delta_time);
