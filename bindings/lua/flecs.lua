@@ -49,6 +49,7 @@ component_id_t flecs_component_get_id_by_name(const char *name);
 int flecs_component_is_tag(component_id_t component_id);
 void flecs_component_print_registry(void);
 component_id_t flecs_component_create(const char *name, uint32_t size);
+component_id_t flecs_component_create_tag(const char *name);
 
 entity_id_t flecs_entity_create(const char *name);
 int flecs_entity_destroy(entity_id_t entity_id);
@@ -173,6 +174,10 @@ end
 
 function M.component_create(name, size)
   return C.flecs_component_create(name, size)
+end
+
+function M.component_create_tag(name)
+  return C.flecs_component_create_tag(name)
 end
 
 function M.entity_create(name)

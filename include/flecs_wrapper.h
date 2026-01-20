@@ -25,6 +25,7 @@ extern "C"
     bool flecs_component_is_tag(component_id_t component_id);
     void flecs_component_print_registry(void);
     component_id_t flecs_component_create(const char *name, uint32_t size);
+    component_id_t flecs_component_create_tag(const char *name);
 
     // Entity component inspection
     void flecs_entity_print_components(entity_id_t entity_id);

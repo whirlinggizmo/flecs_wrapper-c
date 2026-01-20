@@ -225,12 +225,58 @@ component_id_t create_component(const char* name, uint32_t size)
     return id;
 }
 
+component_id_t create_tag_component(const char *name)
+{
+    if (name == NULL || strlen(name) < 1) {
+        fprintf(stderr, "Invalid name provided to create_tag_component()\n");
+        return 0;
+    }
+
+    if (is_component_registered(name)) {
+        fprintf(stderr, "Component %s is already registered\n", name);
+        return 0;
+    }
+
+    if (component_info_count >= MAX_COMPONENTS) {
+        fprintf(stderr, "Unable to register component: %s (Reached MAX_COMPONENTS)\n", name);
+        return 0;
+    }
+
+    ecs_entity_t tag = ecs_entity(world, {
+        .name = name
+    });
+
+    if (!tag) {
+        fprintf(stderr, "Failed to register tag component: %s\n", name);
+        return 0;
+    }
+
+    uint32_t id = component_info_count;
+    component_info_table[id].ecs_id = tag;
+    strncpy(component_info_table[id].name, name, sizeof(component_info_table[id].name) - 1);
+    component_info_table[id].name[sizeof(component_info_table[id].name) - 1] = '\0';
+    component_info_table[id].size = 0;
+    component_info_table[id].id = id;
+
+    component_ecs_hash_insert(tag, id);
+    component_name_hash_insert(name, id);
+
+    component_info_count++;
+
+    return id;
+}
+
 
 ///////////////////////////////////////////////////////////////
 
 EXPORT component_id_t flecs_component_create(const char* name, uint32_t size)
 {
     return create_component(name, size);
+}
+
+EXPORT component_id_t flecs_component_create_tag(const char *name)
+{
+    return create_tag_component(name);
 }
 
 EXPORT component_id_t flecs_component_get_id_by_name(const char *name)
@@ -322,7 +368,11 @@ EXPORT bool flecs_entity_add_component(entity_id_t entity_id, component_id_t com
     const ComponentInfo *component_info = get_component_info(component_id);
     if (!component_info)
         return false;
-    char zero[component_info->size];          /* automatic array, correct size */
+    if (component_info->size == 0) {
+        ecs_add_id(world, entity_ecs_id, component_info->ecs_id);
+        return true;
+    }
+    char zero[component_info->size];
     memset(zero, 0, component_info->size);
     ecs_set_id(world, entity_ecs_id, component_info->ecs_id, component_info->size, (const void *)&zero);
     //printf("Added component %s to entity %u (size: %zu)\n", component_info->name, entity_id, component_info->size);
@@ -337,7 +387,11 @@ EXPORT bool flecs_entity_add_component_by_name(entity_id_t entity_id, const char
     const ComponentInfo *component_info = get_component_info_by_name(component_name);
     if (!component_info)
         return false;
-    char zero[component_info->size];          /* automatic array, correct size */
+    if (component_info->size == 0) {
+        ecs_add_id(world, entity_ecs_id, component_info->ecs_id);
+        return true;
+    }
+    char zero[component_info->size];
     memset(zero, 0, component_info->size);
     ecs_set_id(world, entity_ecs_id, component_info->ecs_id, component_info->size, (const void *)&zero);
     //printf("Added component %s to entity %u (size: %zu)\n", component_info->name, entity_id, component_info->size);
@@ -376,6 +430,10 @@ EXPORT bool flecs_entity_set_component(entity_id_t entity_id, component_id_t com
     const ComponentInfo *component_info = get_component_info(component_id);
     if (!component_info)
         return false;
+    if (component_info->size == 0) {
+        ecs_add_id(world, entity_ecs_id, component_info->ecs_id);
+        return true;
+    }
     ecs_set_id(world, entity_ecs_id, component_info->ecs_id, component_info->size, component_data_ptr);
     return true;
 }
