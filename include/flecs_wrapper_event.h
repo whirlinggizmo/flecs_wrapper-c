@@ -2,7 +2,7 @@
 #ifndef FLECS_WRAPPER_EVENT_H
 #define FLECS_WRAPPER_EVENT_H
 
-#include "flecs_wrapper.h"
+#include <stdint.h>
 #include <flecs.h>
 
 #ifdef __cplusplus
@@ -24,6 +24,7 @@ enum event_id
 };
 
 void init_event_table(void);
+void clear_event_table(void);
 #ifdef __cplusplus
 }
 #endif

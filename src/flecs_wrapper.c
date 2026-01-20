@@ -4,7 +4,16 @@
 #include "flecs.h"
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_world.h"
+#include "flecs_wrapper_component.h"
+#include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_event.h"
+
+static void flecs_wrapper_reset_state(void)
+{
+    clear_component_info();
+    clear_entity_info();
+    clear_event_table();
+}
 
 EXPORT const char *flecs_version(void)
 {
@@ -13,6 +22,9 @@ EXPORT const char *flecs_version(void)
 
 EXPORT void flecs_init()
 {
+    // Ensure clean wrapper state even if the previous shutdown was partial.
+    flecs_wrapper_reset_state();
+
     init_event_table();
 
     world = init_world();
@@ -42,6 +54,10 @@ EXPORT void flecs_fini()
         return;
     }
     ecs_fini(world);
+    world = NULL;
+
+    // Clear wrapper registries that outlive the Flecs world.
+    flecs_wrapper_reset_state();
 }
 
 EXPORT void flecs_set_threads(int32_t threads)

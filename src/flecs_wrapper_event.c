@@ -2,6 +2,7 @@
 #define FLECS_OBSERVER
 
 #include <stdlib.h>
+#include <string.h>
 #include "flecs.h"
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_component.h"
@@ -24,6 +25,10 @@ void init_event_table(void) {
     event_ecs_id_table[6] = EcsOnTableCreate;
     event_ecs_id_table[7] = EcsOnTableDelete;
     printf("Event table initialized\n");
+}
+
+void clear_event_table(void) {
+    memset(event_ecs_id_table, 0, sizeof(event_ecs_id_table));
 }
 
 uint32_t get_event_id(const ecs_entity_t ecs_id)
@@ -266,6 +271,7 @@ bool register_observer(
     if (observer == 0)
     {
         fprintf(stderr, "Unable to register observer\n");
+        free(callback_ctx);
         return false;
     }
 

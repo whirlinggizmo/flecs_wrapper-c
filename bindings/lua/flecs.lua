@@ -4,6 +4,7 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef uint32_t entity_id_t;
 typedef uint32_t component_id_t;
+typedef uint32_t event_id_t;
 
 typedef struct Position { float x; float y; } Position;
 typedef struct Velocity { float x; float y; } Velocity;
@@ -18,6 +19,18 @@ typedef void (*SystemCallback)(
   const uint32_t *column_sizes,
   uint32_t column_count,
   float delta_time,
+  uint32_t callback_id
+);
+
+typedef void (*ObserverCallback)(
+  const entity_id_t *entity_ids,
+  uint32_t entity_count,
+  void **columns,
+  const component_id_t *column_component_ids,
+  const uint32_t *column_sizes,
+  uint32_t column_count,
+  event_id_t event_id,
+  component_id_t component_id,
   uint32_t callback_id
 );
 
@@ -52,10 +65,28 @@ uint32_t flecs_register_system_ex(
   SystemCallback callback,
   uint32_t callback_id
 );
+
+bool flecs_register_observer(
+  component_id_t *component_ids,
+  uint32_t num_components,
+  event_id_t *event_ids,
+  uint32_t num_events,
+  ObserverCallback callback,
+  uint32_t callback_id
+);
 ]]
 
 local M = {}
 M.ffi = ffi
+M.events = {
+  ON_ADD = 1,
+  ON_REMOVE = 2,
+  ON_SET = 3,
+  ON_DELETE = 4,
+  ON_DELETE_TARGET = 5,
+  ON_TABLE_CREATE = 6,
+  ON_TABLE_DELETE = 7,
+}
 M.types = {
   Position = ffi.typeof("Position"),
   Velocity = ffi.typeof("Velocity"),
@@ -84,6 +115,7 @@ local C = load_lib()
 
 M._C = C
 M._callbacks = {}
+M._nextCallbackId = 1
 
 function M.init()
   C.flecs_init()
@@ -198,6 +230,44 @@ function M.register_system_ex(name, include_names, exclude_names, lua_callback, 
   end
   M._callbacks[sys_id] = {cb = cb, safe = safe_callback, original = lua_callback}
   return sys_id
+end
+
+local function event_ids_from_list(event_ids)
+  local count = #event_ids
+  local ids = ffi.new("event_id_t[?]", count)
+  for i = 1, count do
+    local eid = tonumber(event_ids[i])
+    if not eid or eid < 1 then
+      error("Invalid event id: " .. tostring(event_ids[i]))
+    end
+    ids[i - 1] = eid
+  end
+  return ids, count
+end
+
+function M.register_observer(component_names, event_ids, lua_callback, callback_id)
+  local component_ids, component_count = ids_from_names(component_names)
+  local ev_ids, ev_count = event_ids_from_list(event_ids)
+
+  local id = tonumber(callback_id) or 0
+  if id == 0 then
+    id = M._nextCallbackId
+    M._nextCallbackId = M._nextCallbackId + 1
+  end
+
+  local function safe_callback(...)
+    local ok, err = pcall(lua_callback, ...)
+    if not ok then
+      io.stderr:write("[flecs_wrapper] Lua observer callback error: " .. tostring(err) .. "\n")
+    end
+  end
+  local cb = ffi.cast("ObserverCallback", safe_callback)
+  local ok = C.flecs_register_observer(component_ids, component_count, ev_ids, ev_count, cb, id)
+  if not ok then
+    error("flecs_register_observer failed")
+  end
+  M._callbacks[id] = {cb = cb, safe = safe_callback, original = lua_callback}
+  return id
 end
 
 return M

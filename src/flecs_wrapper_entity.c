@@ -1,6 +1,8 @@
 // lib/flecs_wrapper/src/flecs_wrapper_entity.c
 #define FLECS_OBSERVER
 
+#include <string.h>
+
 #include "flecs.h"
 #include "flecs_wrapper.h"
 
@@ -55,6 +57,15 @@ static void free_entity_id(entity_id_t id)
     {
         fprintf(stderr, "Free entity id list overflow (id %u)\n", id);
     }
+}
+
+void clear_entity_info(void)
+{
+    entity_ecs_id_count = 1;
+    free_entity_ids_count = 0;
+    memset(entity_ecs_id_table, 0, sizeof(entity_ecs_id_table));
+    memset(free_entity_ids, 0, sizeof(free_entity_ids));
+    memset(entity_id_in_free_list, 0, sizeof(entity_id_in_free_list));
 }
 
 entity_id_t get_entity_id(ecs_entity_t ecs_id)
