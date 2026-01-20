@@ -2,6 +2,10 @@
 local ffi = require("ffi")
 
 ffi.cdef[[
+typedef unsigned char uint8_t;
+typedef signed int int32_t;
+typedef unsigned int uint32_t;
+
 typedef uint32_t entity_id_t;
 typedef uint32_t component_id_t;
 typedef uint32_t event_id_t;
@@ -39,15 +43,25 @@ void flecs_progress(float delta_time);
 void flecs_fini(void);
 void flecs_set_threads(int32_t threads);
 
+const char *flecs_version(void);
+
 component_id_t flecs_component_get_id_by_name(const char *name);
+int flecs_component_is_tag(component_id_t component_id);
+void flecs_component_print_registry(void);
 component_id_t flecs_component_create(const char *name, uint32_t size);
 
 entity_id_t flecs_entity_create(const char *name);
-bool flecs_entity_destroy(entity_id_t entity_id);
-bool flecs_entity_add_component(entity_id_t entity_id, component_id_t component_id);
-bool flecs_entity_remove_component(entity_id_t entity_id, component_id_t component_id);
-bool flecs_entity_set_component(entity_id_t entity_id, component_id_t component_id, const void *component_data_ptr);
+int flecs_entity_destroy(entity_id_t entity_id);
+void flecs_entity_print_components(entity_id_t entity_id);
+int flecs_entity_has_component(entity_id_t entity_id, component_id_t component_id);
+int flecs_entity_has_component_by_name(entity_id_t entity_id, const char *component_name);
+int flecs_entity_add_component(entity_id_t entity_id, component_id_t component_id);
+int flecs_entity_add_component_by_name(entity_id_t entity_id, const char *component_name);
+int flecs_entity_remove_component(entity_id_t entity_id, component_id_t component_id);
+int flecs_entity_remove_component_by_name(entity_id_t entity_id, const char *component_name);
+int flecs_entity_set_component(entity_id_t entity_id, component_id_t component_id, const void *component_data_ptr);
 const void *flecs_entity_get_component(entity_id_t entity_id, component_id_t component_id);
+void flecs_entity_mark_component(entity_id_t entity_id, component_id_t component_id);
 
 uint32_t flecs_register_system(
   const char *name,
@@ -66,7 +80,7 @@ uint32_t flecs_register_system_ex(
   uint32_t callback_id
 );
 
-bool flecs_register_observer(
+int flecs_register_observer(
   component_id_t *component_ids,
   uint32_t num_components,
   event_id_t *event_ids,
@@ -141,6 +155,22 @@ function M.component_id(name)
   return C.flecs_component_get_id_by_name(name)
 end
 
+function M.version()
+  local v = C.flecs_version()
+  if v == nil then
+    return nil
+  end
+  return ffi.string(v)
+end
+
+function M.component_is_tag(component_id)
+  return C.flecs_component_is_tag(component_id) ~= 0
+end
+
+function M.component_print_registry()
+  C.flecs_component_print_registry()
+end
+
 function M.component_create(name, size)
   return C.flecs_component_create(name, size)
 end
@@ -153,16 +183,40 @@ function M.entity_destroy(entity_id)
   return C.flecs_entity_destroy(entity_id)
 end
 
+function M.entity_print_components(entity_id)
+  C.flecs_entity_print_components(entity_id)
+end
+
+function M.entity_has_component(entity_id, component_id)
+  return C.flecs_entity_has_component(entity_id, component_id) ~= 0
+end
+
+function M.entity_has_component_by_name(entity_id, component_name)
+  return C.flecs_entity_has_component_by_name(entity_id, component_name) ~= 0
+end
+
 function M.entity_add_component(entity_id, component_id)
   return C.flecs_entity_add_component(entity_id, component_id)
+end
+
+function M.entity_add_component_by_name(entity_id, component_name)
+  return C.flecs_entity_add_component_by_name(entity_id, component_name) ~= 0
 end
 
 function M.entity_remove_component(entity_id, component_id)
   return C.flecs_entity_remove_component(entity_id, component_id)
 end
 
+function M.entity_remove_component_by_name(entity_id, component_name)
+  return C.flecs_entity_remove_component_by_name(entity_id, component_name) ~= 0
+end
+
 function M.entity_set_component(entity_id, component_id, data_ptr)
   return C.flecs_entity_set_component(entity_id, component_id, data_ptr)
+end
+
+function M.entity_mark_component(entity_id, component_id)
+  C.flecs_entity_mark_component(entity_id, component_id)
 end
 
 function M.entity_get_component(entity_id, component_id, ctype)
