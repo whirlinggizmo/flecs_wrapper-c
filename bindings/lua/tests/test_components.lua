@@ -1,0 +1,56 @@
+local ffi = require("ffi")
+local ecs = require("flecs_wrapper.bindings.lua.flecs")
+
+ffi.cdef[[
+typedef struct Counter { int32_t count; } Counter;
+]]
+
+local function expect(cond, msg)
+  if not cond then
+    error("TEST FAILED: " .. msg)
+  end
+end
+
+ecs.init()
+ecs.set_threads(1)
+
+local counter_id = ecs.component_create("LuaCounter", ffi.sizeof("Counter"))
+expect(counter_id ~= 0, "component_create LuaCounter failed")
+expect(ecs.component_is_tag(counter_id) == false, "expected LuaCounter not to be a tag")
+
+local e1 = ecs.entity_create("ComponentTestEntity")
+expect(e1 ~= 0, "entity_create failed")
+
+-- Initially absent
+expect(ecs.entity_has_component(e1, counter_id) == false, "counter should not be present initially")
+expect(ecs.entity_has_component_by_name(e1, "LuaCounter") == false, "counter(by_name) should not be present initially")
+
+-- Add/remove data component by id
+expect(ecs.entity_add_component(e1, counter_id) ~= 0, "entity_add_component(counter) failed")
+expect(ecs.entity_has_component(e1, counter_id) == true, "counter should be present after add")
+expect(ecs.entity_remove_component(e1, counter_id) ~= 0, "entity_remove_component(counter) failed")
+expect(ecs.entity_has_component(e1, counter_id) == false, "counter should be absent after remove")
+
+-- Add/remove data component by name
+expect(ecs.entity_add_component_by_name(e1, "LuaCounter") == true, "entity_add_component_by_name(counter) failed")
+expect(ecs.entity_has_component_by_name(e1, "LuaCounter") == true, "counter(by_name) should be present after add")
+expect(ecs.entity_remove_component_by_name(e1, "LuaCounter") == true, "entity_remove_component_by_name(counter) failed")
+expect(ecs.entity_has_component_by_name(e1, "LuaCounter") == false, "counter(by_name) should be absent after remove")
+
+-- Set/get/remove data component
+expect(ecs.entity_set_component(e1, counter_id, ecs.new("Counter", {count = 7})) ~= 0, "entity_set_component(counter) failed")
+expect(ecs.entity_has_component(e1, counter_id) == true, "counter should be present after set")
+
+local cptr = ecs.entity_get_component(e1, counter_id, "Counter*")
+expect(cptr ~= nil, "entity_get_component(counter) returned nil")
+expect(cptr[0].count == 7, "expected counter==7")
+
+-- Mark component as changed (should not crash)
+ecs.entity_mark_component(e1, counter_id)
+
+expect(ecs.entity_remove_component(e1, counter_id) ~= 0, "entity_remove_component(counter) failed")
+expect(ecs.entity_has_component(e1, counter_id) == false, "counter should be absent after remove")
+expect(ecs.entity_get_component(e1, counter_id, "Counter*") == nil, "get_component should return nil after remove")
+
+print("test_components.lua: OK")
+ecs.fini()
