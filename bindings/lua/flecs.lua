@@ -171,19 +171,20 @@ M.types = {
 }
 
 local function load_lib()
-  local lib_path = my_dir() .. "../../lib/libflecs_wrapper.so"
+  local lib_path = my_dir() .. "../../libflecs_wrapper.so"
   lib_path = normalize_path(lib_path)
   local ok, lib = pcall(ffi.load, lib_path)
   if ok then
     print("Loaded flecs_wrapper.so from " .. lib_path)
     return lib
   end
-  ok, lib = pcall(ffi.load, "flecs_wrapper")
+  local lib_path_deps = my_dir() .. "../../lib/libflecs_wrapper.so"
+  ok, lib = pcall(ffi.load, lib_path_deps)
   if ok then
-    print("Loaded flecs_wrapper.so from " .. lib_path)
+    print("Loaded flecs_wrapper.so from " .. lib_path_deps)
     return lib
   end
-  error("Failed to load flecs_wrapper (tried " .. lib_path .. " and flecs_wrapper)")
+  error("Failed to load flecs_wrapper (tried " .. lib_path .. " and " .. lib_path_deps .. ")")
 end
 
 local C = load_lib()
