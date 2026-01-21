@@ -15,6 +15,7 @@ TEST_DIR            = ./tests
 TARGET_DYNAMIC      = $(BIN_DIR)/libflecs_wrapper.so
 TARGET_STATIC       = $(BIN_DIR)/libflecs_wrapper.a
 TEST_SYSTEM_EX      = $(BIN_DIR)/test_system_ex
+TEST_NATIVE_DIR     = $(TEST_DIR)/native
 
 # Source files
 WRAPPER_SRC = $(call rwildcard,$(WRAPPER_SRC_DIR),*.c)
@@ -61,5 +62,5 @@ print-srcs:
 test: $(TEST_SYSTEM_EX)
 	$(TEST_SYSTEM_EX)
 
-$(TEST_SYSTEM_EX): $(TEST_DIR)/test_system_ex.c $(TARGET_DYNAMIC)
+$(TEST_SYSTEM_EX): $(TEST_NATIVE_DIR)/test_system_ex.c $(TARGET_DYNAMIC)
 	$(CC) -I$(WRAPPER_INC_DIR) $< -L$(BIN_DIR) -lflecs_wrapper -lm -Wl,-rpath,$(BIN_DIR) -o $@

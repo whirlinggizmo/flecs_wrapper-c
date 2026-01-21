@@ -1,3 +1,13 @@
+local function add_flecs_wrapper_path()
+  local source = debug.getinfo(1, "S").source
+  local path = source:sub(1, 1) == "@" and source:sub(2) or ""
+  local dir = path:match("^(.*[/\\])") or "./"
+  local module_root = dir .. "../../.."
+  package.path = module_root .. "/?.lua;" .. module_root .. "/?/init.lua;" .. package.path
+end
+
+add_flecs_wrapper_path()
+
 local ffi = require("ffi")
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
 
