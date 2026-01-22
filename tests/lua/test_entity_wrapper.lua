@@ -1,0 +1,53 @@
+local function add_flecs_wrapper_path()
+  local source = debug.getinfo(1, "S").source
+  local path = source:sub(1, 1) == "@" and source:sub(2) or ""
+  local dir = path:match("^(.*[/\\])") or "./"
+  local module_root = dir .. "../../.."
+  package.path = module_root .. "/?.lua;" .. module_root .. "/?/init.lua;" .. package.path
+end
+
+add_flecs_wrapper_path()
+
+local ecs = require("flecs_wrapper.bindings.lua.flecs")
+local comp = require("flecs_wrapper.bindings.lua.component_wrapper")
+local ent = require("flecs_wrapper.bindings.lua.entity_wrapper")
+
+local function expect(cond, msg)
+  if not cond then
+    error("TEST FAILED: " .. msg)
+  end
+end
+
+ecs.init()
+ecs.set_threads(1)
+
+local Position = comp.create("LuaEntPos", {
+  {"x", comp.types.float},
+  {"y", comp.types.float},
+})
+local Tag = comp.tag("LuaEntTag")
+
+local e = ent.create("LuaEnt")
+expect(e.id ~= 0, "entity create failed")
+
+expect(e:has(Position) == false, "entity should not have Position initially")
+expect(e:add(Position) == true, "entity add Position failed")
+expect(e:has(Position) == true, "entity should have Position after add")
+
+expect(e:has("LuaEntTag") == false, "entity should not have Tag initially")
+expect(e:add("LuaEntTag") == true, "entity add Tag by name failed")
+expect(e:has("LuaEntTag") == true, "entity should have Tag after add")
+
+expect(e:set(Position, {x = 2.5, y = -1.0}) == true, "entity set Position failed")
+local p = e:get(Position)
+expect(p ~= nil, "entity get Position returned nil")
+expect(p[0].x == 2.5, "expected Position.x == 2.5")
+expect(p[0].y == -1.0, "expected Position.y == -1.0")
+
+e:mark(Position)
+
+expect(e:remove("LuaEntTag") == true, "entity remove Tag failed")
+expect(e:has("LuaEntTag") == false, "entity should not have Tag after remove")
+
+print("test_entity_wrapper.lua: OK")
+ecs.fini()

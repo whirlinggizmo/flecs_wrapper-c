@@ -71,9 +71,11 @@ typedef uint32_t entity_id_t;
 typedef uint32_t component_id_t;
 typedef uint32_t event_id_t;
 
+// known components
 typedef struct Position { float x; float y; } Position;
 typedef struct Velocity { float x; float y; } Velocity;
 typedef struct Destination { float x; float y; float speed; } Destination;
+
 typedef struct EntityId { uint32_t value; } EntityId;
 
 typedef void (*SystemCallback)(
