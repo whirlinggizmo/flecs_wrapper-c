@@ -2,5 +2,7 @@
     "files.associations": {
         "*.nimble": "nimble",
         "typeinfo": "c"
-    }
+    },
+    "git.autorefresh": true,
+    "git.autofetch": true
 }
