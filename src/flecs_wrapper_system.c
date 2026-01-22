@@ -10,6 +10,33 @@
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_components.h"
 #include "flecs_wrapper_world.h"
+#include "flecs_wrapper_system.h"
+
+#define MAX_SYSTEMS 65536
+static ecs_entity_t system_ecs_id_table[MAX_SYSTEMS] = {0};
+static uint32_t system_ecs_id_count = 1;
+
+void clear_system_info(void)
+{
+    system_ecs_id_count = 1;
+    memset(system_ecs_id_table, 0, sizeof(system_ecs_id_table));
+}
+
+static system_id_t alloc_system_id(void)
+{
+    if (system_ecs_id_count >= MAX_SYSTEMS)
+        return 0;
+    return system_ecs_id_count++;
+}
+
+static system_id_t register_system_id(ecs_entity_t ecs_id)
+{
+    system_id_t id = alloc_system_id();
+    if (id == 0)
+        return 0;
+    system_ecs_id_table[id] = ecs_id;
+    return id;
+}
 
 typedef struct TrampolineSystemContext
 {
@@ -222,7 +249,7 @@ static ecs_entity_t register_system_ex(
     return sys;
 }
 
-EXPORT uint32_t flecs_register_system(
+EXPORT system_id_t flecs_register_system(
     const char* name,
     component_id_t* components,
     uint32_t num_components,
@@ -230,11 +257,20 @@ EXPORT uint32_t flecs_register_system(
     uint32_t callback_id
 ) {
     ecs_entity_t result = register_system_ex(name, components, num_components, NULL, 0, callback, callback_id);
-    printf("Registered iterator system '%s' with id: %lu\n", name, (unsigned long)result);
-    return (uint32_t)result;
+    if (!result) {
+        return 0;
+    }
+    system_id_t sys_id = register_system_id(result);
+    if (sys_id == 0) {
+        fprintf(stderr, "Unable to register system '%s' (system id exhausted)\n", name);
+        ecs_delete(world, result);
+        return 0;
+    }
+    printf("Registered iterator system '%s' with id: %u\n", name, sys_id);
+    return sys_id;
 }
 
-EXPORT uint32_t flecs_register_system_ex(
+EXPORT system_id_t flecs_register_system_ex(
     const char* name,
     component_id_t* include_components,
     uint32_t num_include_components,
@@ -252,6 +288,15 @@ EXPORT uint32_t flecs_register_system_ex(
         callback,
         callback_id
     );
-    printf("Registered iterator system '%s' with id: %lu\n", name, (unsigned long)result);
-    return (uint32_t)result;
+    if (!result) {
+        return 0;
+    }
+    system_id_t sys_id = register_system_id(result);
+    if (sys_id == 0) {
+        fprintf(stderr, "Unable to register system '%s' (system id exhausted)\n", name);
+        ecs_delete(world, result);
+        return 0;
+    }
+    printf("Registered iterator system '%s' with id: %u\n", name, sys_id);
+    return sys_id;
 }

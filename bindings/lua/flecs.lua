@@ -144,9 +144,19 @@ uint32_t flecs_register_system_ex(
   uint32_t callback_id
 );
 
-int flecs_register_observer(
+uint32_t flecs_register_observer(
   component_id_t *component_ids,
   uint32_t num_components,
+  event_id_t *event_ids,
+  uint32_t num_events,
+  ObserverCallback callback,
+  uint32_t callback_id
+);
+uint32_t flecs_register_observer_ex(
+  component_id_t *include_component_ids,
+  uint32_t num_include_components,
+  component_id_t *exclude_component_ids,
+  uint32_t num_exclude_components,
   event_id_t *event_ids,
   uint32_t num_events,
   ObserverCallback callback,
@@ -384,12 +394,38 @@ function M.register_observer(component_names, event_ids, lua_callback, callback_
     end
   end
   local cb = ffi.cast("ObserverCallback", safe_callback)
-  local ok = C.flecs_register_observer(component_ids, component_count, ev_ids, ev_count, cb, id)
-  if not ok then
+  local observer_id = C.flecs_register_observer(component_ids, component_count, ev_ids, ev_count, cb, id)
+  if observer_id == 0 then
     error("flecs_register_observer failed")
   end
-  M._callbacks[id] = {cb = cb, safe = safe_callback, original = lua_callback}
-  return id
+  M._callbacks[observer_id] = {cb = cb, safe = safe_callback, original = lua_callback}
+  return tonumber(observer_id)
+end
+
+function M.register_observer_ex(include_names, exclude_names, event_ids, lua_callback, callback_id)
+  local include_ids, include_count = ids_from_names(include_names)
+  local exclude_ids, exclude_count = ids_from_names(exclude_names or {})
+  local ev_ids, ev_count = event_ids_from_list(event_ids)
+
+  local id = tonumber(callback_id) or 0
+  if id == 0 then
+    id = M._nextCallbackId
+    M._nextCallbackId = M._nextCallbackId + 1
+  end
+
+  local function safe_callback(...)
+    local ok, err = pcall(lua_callback, ...)
+    if not ok then
+      io.stderr:write("[flecs_wrapper] Lua observer callback error: " .. tostring(err) .. "\n")
+    end
+  end
+  local cb = ffi.cast("ObserverCallback", safe_callback)
+  local observer_id = C.flecs_register_observer_ex(include_ids, include_count, exclude_ids, exclude_count, ev_ids, ev_count, cb, id)
+  if observer_id == 0 then
+    error("flecs_register_observer_ex failed")
+  end
+  M._callbacks[observer_id] = {cb = cb, safe = safe_callback, original = lua_callback}
+  return tonumber(observer_id)
 end
 
 return M

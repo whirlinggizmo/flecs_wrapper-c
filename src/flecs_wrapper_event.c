@@ -31,6 +31,32 @@ void clear_event_table(void) {
     memset(event_ecs_id_table, 0, sizeof(event_ecs_id_table));
 }
 
+#define MAX_OBSERVERS 65536
+static ecs_entity_t observer_ecs_id_table[MAX_OBSERVERS] = {0};
+static uint32_t observer_ecs_id_count = 1;
+
+void clear_observer_info(void)
+{
+    observer_ecs_id_count = 1;
+    memset(observer_ecs_id_table, 0, sizeof(observer_ecs_id_table));
+}
+
+static observer_id_t alloc_observer_id(void)
+{
+    if (observer_ecs_id_count >= MAX_OBSERVERS)
+        return 0;
+    return observer_ecs_id_count++;
+}
+
+static observer_id_t register_observer_id(ecs_entity_t ecs_id)
+{
+    observer_id_t id = alloc_observer_id();
+    if (id == 0)
+        return 0;
+    observer_ecs_id_table[id] = ecs_id;
+    return id;
+}
+
 uint32_t get_event_id(const ecs_entity_t ecs_id)
 {
     // We could use something like hash_u64, but with only 8 events, the hashing is probably slower than a linear search
@@ -150,20 +176,22 @@ static void free_observer_callback_ctx(void *ctx)
 }
 
 // A wrapper function to register an observer
-bool register_observer(
-    component_id_t *component_ids,
-    uint32_t num_components,
+observer_id_t register_observer_ex(
+    component_id_t *include_component_ids,
+    uint32_t num_include_components,
+    component_id_t *exclude_component_ids,
+    uint32_t num_exclude_components,
     event_id_t *event_ids,
     uint32_t num_events,
     ObserverCallback callback,
     uint32_t callback_id)
 {
-    //printf("Registering observer for %d components\n", num_components);
+    //printf("Registering observer for %d components\n", num_include_components);
 
-    if (num_components >= FLECS_TERM_COUNT_MAX)
+    if ((num_include_components + num_exclude_components) >= FLECS_TERM_COUNT_MAX)
     {
         fprintf(stderr, "Too many terms! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
-        return false;
+        return 0;
     }
 
     ecs_observer_desc_t desc = {0};
@@ -171,22 +199,22 @@ bool register_observer(
     uint32_t entity_id_component = flecs_component_get_id_by_name("EntityId");
     if (entity_id_component == 0) {
         fprintf(stderr, "Unabled to register observer (EntityId component not registered)\n");
-        return false;
+        return 0;
     }
 
     bool has_entity_id = false;
-    for (uint32_t i = 0; i < num_components; i++) {
-        if (component_ids[i] == entity_id_component) {
+    for (uint32_t i = 0; i < num_include_components; i++) {
+        if (include_component_ids[i] == entity_id_component) {
             has_entity_id = true;
             break;
         }
     }
 
-    uint32_t effective_count = num_components + (has_entity_id ? 0 : 1);
+    uint32_t effective_count = num_include_components + num_exclude_components + (has_entity_id ? 0 : 1);
     if (effective_count > FLECS_TERM_COUNT_MAX)
     {
         fprintf(stderr, "Too many terms! Max allowed: %d\n", FLECS_TERM_COUNT_MAX);
-        return false;
+        return 0;
     }
 
     uint32_t i = 0;
@@ -196,7 +224,7 @@ bool register_observer(
         if (desc.events[i] == 0)
         {
             fprintf(stderr, "Unabled to register observer (event_id %u not found)\n", event_ids[i]);
-            return false;
+            return 0;
         }
     }
     desc.events[i] = 0; // null terminator required
@@ -204,7 +232,7 @@ bool register_observer(
     ObserverCallbackContext *callback_ctx = malloc(sizeof(ObserverCallbackContext));
     if (!callback_ctx) {
         fprintf(stderr, "Failed to allocate observer context\n");
-        return false;
+        return 0;
     }
     callback_ctx->callback_id = callback_id;
     callback_ctx->callback = callback;
@@ -214,24 +242,24 @@ bool register_observer(
 
     uint32_t out_term = 0;
     uint32_t out_col = 0;
-    for (uint32_t i = 0; i < num_components; i++)
+    for (uint32_t i = 0; i < num_include_components; i++)
     {
-        if (component_ids[i] == entity_id_component) {
+        if (include_component_ids[i] == entity_id_component) {
             continue;
         }
 
-        const ComponentInfo *component_info = get_component_info(component_ids[i]);
+        const ComponentInfo *component_info = get_component_info(include_component_ids[i]);
         if (component_info == NULL)
         {
-            fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", component_ids[i]);
+            fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", include_component_ids[i]);
             free(callback_ctx);
-            return false;
+            return 0;
         }
         desc.query.terms[out_term].id = component_info->ecs_id;
         callback_ctx->field_ids[out_term] = component_info->ecs_id;
         callback_ctx->field_sizes[out_term] = component_info->size;
 
-        callback_ctx->column_component_ids[out_col] = component_ids[i];
+        callback_ctx->column_component_ids[out_col] = include_component_ids[i];
         callback_ctx->column_sizes[out_col] = (uint32_t)component_info->size;
         callback_ctx->column_term_indices[out_col] = (int32_t)out_term;
         out_col++;
@@ -239,20 +267,40 @@ bool register_observer(
         if (out_term >= FLECS_TERM_COUNT_MAX) {
             fprintf(stderr, "Unabled to register observer (too many terms)\n");
             free(callback_ctx);
-            return false;
+            return 0;
         }
     }
 
     callback_ctx->column_count = out_col;
-    if (num_components == 1 && component_ids[0] != entity_id_component) {
+    if (num_include_components == 1 && include_component_ids[0] != entity_id_component) {
         callback_ctx->event_field_index = 0;
+    }
+
+    for (uint32_t i = 0; i < num_exclude_components; i++) {
+        const ComponentInfo *component_info = get_component_info(exclude_component_ids[i]);
+        if (component_info == NULL)
+        {
+            fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", exclude_component_ids[i]);
+            free(callback_ctx);
+            return 0;
+        }
+        desc.query.terms[out_term].id = component_info->ecs_id;
+        desc.query.terms[out_term].oper = EcsNot;
+        callback_ctx->field_ids[out_term] = component_info->ecs_id;
+        callback_ctx->field_sizes[out_term] = component_info->size;
+        out_term++;
+        if (out_term >= FLECS_TERM_COUNT_MAX) {
+            fprintf(stderr, "Unabled to register observer (too many terms)\n");
+            free(callback_ctx);
+            return 0;
+        }
     }
 
     const ComponentInfo *entity_id_info = get_component_info(entity_id_component);
     if (!entity_id_info) {
         fprintf(stderr, "Unabled to register observer (EntityId component info missing)\n");
         free(callback_ctx);
-        return false;
+        return 0;
     }
     desc.query.terms[out_term].id = entity_id_info->ecs_id;
     callback_ctx->field_ids[out_term] = entity_id_info->ecs_id;
@@ -272,14 +320,26 @@ bool register_observer(
     {
         fprintf(stderr, "Unable to register observer\n");
         free(callback_ctx);
-        return false;
+        return 0;
     }
 
-    return true;
+    observer_id_t observer_id = register_observer_id(observer);
+    if (observer_id == 0) {
+        fprintf(stderr, "Unable to register observer (observer id exhausted)\n");
+        ecs_delete(world, observer);
+        return 0;
+    }
+
+    return observer_id;
 }
 
 
-EXPORT bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
+EXPORT observer_id_t flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
 {
-    return register_observer(component_ids, num_components, event_ids, num_events, callback, callback_id);
+    return register_observer_ex(component_ids, num_components, NULL, 0, event_ids, num_events, callback, callback_id);
+}
+
+EXPORT observer_id_t flecs_register_observer_ex(component_id_t *include_component_ids, uint32_t num_include_components, component_id_t *exclude_component_ids, uint32_t num_exclude_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id)
+{
+    return register_observer_ex(include_component_ids, num_include_components, exclude_component_ids, num_exclude_components, event_ids, num_events, callback, callback_id);
 }

@@ -7,12 +7,15 @@
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_event.h"
+#include "flecs_wrapper_system.h"
 
 static void flecs_wrapper_reset_state(void)
 {
     clear_component_info();
     clear_entity_info();
     clear_event_table();
+    clear_observer_info();
+    clear_system_info();
 }
 
 EXPORT const char *flecs_version(void)

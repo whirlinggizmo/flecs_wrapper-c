@@ -17,10 +17,6 @@ local function expect(cond, msg)
   end
 end
 
-local function expect_error(fn, msg)
-  local ok = pcall(fn)
-  expect(not ok, msg)
-end
 
 ecs.init()
 ecs.set_threads(1)
@@ -42,9 +38,9 @@ local fetched = comp.get("LuaWrapPos", "LuaWrapPos")
 expect(fetched ~= nil, "get should return LuaWrapPos")
 expect(fetched.id == Position.id, "get should return same id for LuaWrapPos")
 
-expect_error(function()
-  comp.register("LuaWrapPos", "LuaWrapPos")
-end, "register should fail for existing component")
+local existing = comp.register("LuaWrapPos", "LuaWrapPos")
+expect(existing ~= nil, "register should return existing component")
+expect(existing.id == Position.id, "register should return same id for existing component")
 
 print("test_component_wrapper.lua: OK")
 ecs.fini()

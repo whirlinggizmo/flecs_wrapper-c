@@ -97,6 +97,15 @@ function M.register(components, events, fn, callback_id)
   return ecs.register_observer(names, events, wrapper, callback_id)
 end
 
+function M.register_ex(include_components, exclude_components, events, fn, callback_id)
+  local include_names = normalize_component_names(include_components)
+  local exclude_names = normalize_component_names(exclude_components or {})
+  local function wrapper(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id)
+    return fn(make_observer(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id))
+  end
+  return ecs.register_observer_ex(include_names, exclude_names, events, wrapper, callback_id)
+end
+
 M.Observer = Observer
 
 return M

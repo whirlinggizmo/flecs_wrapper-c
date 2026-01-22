@@ -3,13 +3,12 @@
 #define FLECS_WRAPPER_ENTITY_H
 
 #include <flecs.h>
+#include "flecs_wrapper_types.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-    typedef uint32_t entity_id_t;
 
     entity_id_t get_entity_id(ecs_entity_t ecs_id);
     ecs_entity_t get_entity_ecs_id(entity_id_t id);

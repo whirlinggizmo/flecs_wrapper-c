@@ -2,12 +2,13 @@
 #ifndef FLECS_WRAPPER_H
 #define FLECS_WRAPPER_H
 
-#include <stdint.h>
 #include <stdbool.h>
 
+#include "flecs_wrapper_types.h"
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_event.h"
+#include "flecs_wrapper_system.h"
 
 #define EXPORT __attribute__((visibility("default")))
 
@@ -61,7 +62,16 @@ extern "C"
         component_id_t component_id,  // component that triggered the observer
         uint32_t callback_id     // user-defined callback ID
     );
-    bool flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id);
+    observer_id_t flecs_register_observer(component_id_t *component_ids, uint32_t num_components, event_id_t *event_ids, uint32_t num_events, ObserverCallback callback, uint32_t callback_id);
+    observer_id_t flecs_register_observer_ex(
+        component_id_t *include_component_ids,
+        uint32_t num_include_components,
+        component_id_t *exclude_component_ids,
+        uint32_t num_exclude_components,
+        event_id_t *event_ids,
+        uint32_t num_events,
+        ObserverCallback callback,
+        uint32_t callback_id);
 
     // System registration
     typedef void (*SystemCallback)(
@@ -77,13 +87,13 @@ extern "C"
         uint32_t callback_id // user-defined callback ID (host-side dispatch)
     );
 
-    uint32_t flecs_register_system(
+    system_id_t flecs_register_system(
         const char *name,
         component_id_t *component_ids,
         uint32_t num_components,
         SystemCallback callback,
         uint32_t callback_id);
-    uint32_t flecs_register_system_ex(
+    system_id_t flecs_register_system_ex(
         const char *name,
         component_id_t *include_component_ids,
         uint32_t num_include_components,

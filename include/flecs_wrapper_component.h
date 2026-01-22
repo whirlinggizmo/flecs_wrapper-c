@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <flecs.h>
+#include "flecs_wrapper_types.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -12,8 +13,6 @@ extern "C"
 #endif
 
 #define MAX_COMPONENTS 256
-
-    typedef uint32_t component_id_t;
 
     typedef struct ComponentInfo
     {

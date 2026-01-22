@@ -2,15 +2,13 @@
 #ifndef FLECS_WRAPPER_EVENT_H
 #define FLECS_WRAPPER_EVENT_H
 
-#include <stdint.h>
 #include <flecs.h>
+#include "flecs_wrapper_types.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-typedef uint32_t event_id_t;
 
 enum event_id
 {
@@ -25,6 +23,7 @@ enum event_id
 
 void init_event_table(void);
 void clear_event_table(void);
+void clear_observer_info(void);
 #ifdef __cplusplus
 }
 #endif
