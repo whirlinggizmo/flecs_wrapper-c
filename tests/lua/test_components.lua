@@ -68,8 +68,7 @@ expect(ecs.entity_has_component_by_name(e1, "LuaTag") == false, "tag(by_name) sh
 expect(ecs.entity_set_component(e1, counter_id, ecs.new("Counter", {count = 7})) ~= 0, "entity_set_component(counter) failed")
 expect(ecs.entity_has_component(e1, counter_id) == true, "counter should be present after set")
 
-local cptr = ecs.entity_get_component(e1, counter_id, "Counter*")
-expect(cptr ~= nil, "entity_get_component(counter) returned nil")
+local cptr = assert(ecs.entity_get_component(e1, counter_id, "Counter*"), "entity_get_component(counter) returned nil")
 expect(cptr[0].count == 7, "expected counter==7")
 
 -- Mark component as changed (should not crash)

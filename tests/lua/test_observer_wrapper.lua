@@ -22,10 +22,10 @@ end
 ecs.init()
 ecs.set_threads(1)
 
-local Position = comp.create("LuaObsPos", {
+local Position = assert(comp.create("LuaObsPos", {
   {"x", comp.types.float},
   {"y", comp.types.float},
-})
+}), "component create returned nil for LuaObsPos")
 
 local seen = {
   add = 0,

@@ -155,8 +155,8 @@ end
 ecs.progress(1.0)
 
 for _, case in ipairs(cases) do
-  local pos1 = ecs.entity_get_component(case.e1, case.pos_id, "Vec2*")
-  local pos2 = ecs.entity_get_component(case.e2, case.pos_id, "Vec2*")
+  local pos1 = assert(ecs.entity_get_component(case.e1, case.pos_id, "Vec2*"), case.name .. ": pos1 nil")
+  local pos2 = assert(ecs.entity_get_component(case.e2, case.pos_id, "Vec2*"), case.name .. ": pos2 nil")
 
   if case.expect_e1_moved then
     expect(pos1[0].x == 1 and pos1[0].y == 0, case.name .. ": expected e1 moved")
