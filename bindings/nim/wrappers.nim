@@ -1,3 +1,6 @@
+# wrappers.nim
+# Convenience file for importing all wrappers at once
+
 import ./flecs
 import ./component_wrapper
 import ./entity_wrapper
