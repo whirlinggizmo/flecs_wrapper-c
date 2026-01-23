@@ -36,13 +36,13 @@ proc createComponent*[T](name: string = ""): Component =
   var compName = name
   if compName.len == 0:
     compName = typeName(T)
-  let id = c_flecs_component_create(compName, cast[uint32](sizeof(T)))
+  let id = c_flecs_component_create(cstring(compName), cast[uint32](sizeof(T)))
   if id == 0:
     raise newException(ValueError, "component_create failed for " & compName)
   return Component(name: compName, id: id, size: cast[uint32](sizeof(T)))
 
 proc createTag*(name: string): Component =
-  let id = flecs_component_create_tag(name)
+  let id = flecs_component_create_tag(cstring(name))
   if id == 0:
     raise newException(ValueError, "component_create_tag failed for " & name)
   return Component(name: name, id: id, size: 0)
