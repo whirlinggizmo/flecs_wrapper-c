@@ -2,3 +2,4 @@
 /lib/*.a
 /lib/*.so
 lib/test_system_ex
+/temp
