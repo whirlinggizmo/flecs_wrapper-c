@@ -90,7 +90,7 @@ proc system_trampoline(
   else:
     echo "⚠️ No callback registered for id ", callback_id
 
-proc flecs_remove_system*(id: uint32) =
+proc flecs_remove_system*(id: system_id_t) =
   ensureSystemCbInit()
   if systemCallbackMap.hasKey(id):
     systemCallbackMap.del(id)
@@ -100,7 +100,7 @@ proc flecs_remove_system*(id: uint32) =
 
 proc flecs_add_system*(
     name: string, components: openArray[uint32], callback: SystemCallback
-): uint32 =
+): system_id_t =
   ensureSystemCbInit()
   if callback.isNil:
     echo "⚠️ Warning: tried to register nil callback"
@@ -118,7 +118,7 @@ proc flecs_add_system*(
 
 proc flecs_add_task*(
     name: string, callback: SystemCallback
-): uint32 =
+): system_id_t =
   ensureSystemCbInit()
   if callback.isNil:
     echo "⚠️ Warning: tried to register nil callback"
@@ -174,7 +174,7 @@ proc toComponentIds(components: openArray[string]): seq[component_id_t] =
       raise newException(ValueError, "Unknown component name: " & name)
     result[i] = id
 
-proc addSystemIds(name: string, components: openArray[component_id_t], callback: SystemIterCallback): uint32 =
+proc addSystemIds(name: string, components: openArray[component_id_t], callback: SystemIterCallback): system_id_t =
   if components.len == 0:
     raise newException(ValueError, "System must include at least one component")
   if callback.isNil:
@@ -200,16 +200,16 @@ proc addSystemIds(name: string, components: openArray[component_id_t], callback:
   )
   result = flecs_register_system(name, components[0].unsafeAddr, uint32 components.len, system_trampoline, cbid)
 
-proc addSystem*(name: string, components: openArray[Component], callback: SystemIterCallback): uint32 =
+proc addSystem*(name: string, components: openArray[Component], callback: SystemIterCallback): system_id_t =
   addSystemIds(name, toComponentIds(components), callback)
 
-proc addSystem*(name: string, components: openArray[string], callback: SystemIterCallback): uint32 =
+proc addSystem*(name: string, components: openArray[string], callback: SystemIterCallback): system_id_t =
   addSystemIds(name, toComponentIds(components), callback)
 
-proc addSystem*(name: string, components: openArray[component_id_t], callback: SystemIterCallback): uint32 =
+proc addSystem*(name: string, components: openArray[component_id_t], callback: SystemIterCallback): system_id_t =
   addSystemIds(name, components, callback)
 
-proc addSystemExIds(name: string, includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], callback: SystemIterCallback): uint32 =
+proc addSystemExIds(name: string, includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], callback: SystemIterCallback): system_id_t =
   if includeComponents.len == 0:
     raise newException(ValueError, "System must include at least one component")
   if callback.isNil:
@@ -243,7 +243,7 @@ proc addSystemExIds(name: string, includeComponents: openArray[component_id_t], 
     cbid,
   )
 
-proc addSystemEx*(name: string, includeComponents: openArray[Component], excludeComponents: openArray[Component], callback: SystemIterCallback): uint32 =
+proc addSystemEx*(name: string, includeComponents: openArray[Component], excludeComponents: openArray[Component], callback: SystemIterCallback): system_id_t =
   addSystemExIds(
     name,
     toComponentIds(includeComponents),
@@ -251,8 +251,8 @@ proc addSystemEx*(name: string, includeComponents: openArray[Component], exclude
     callback,
   )
 
-proc addSystemEx*(name: string, includeComponents: openArray[string], excludeComponents: openArray[string], callback: SystemIterCallback): uint32 =
+proc addSystemEx*(name: string, includeComponents: openArray[string], excludeComponents: openArray[string], callback: SystemIterCallback): system_id_t =
   addSystemExIds(name, toComponentIds(includeComponents), toComponentIds(excludeComponents), callback)
 
-proc addSystemEx*(name: string, includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], callback: SystemIterCallback): uint32 =
+proc addSystemEx*(name: string, includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], callback: SystemIterCallback): system_id_t =
   addSystemExIds(name, includeComponents, excludeComponents, callback)

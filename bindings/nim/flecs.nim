@@ -46,6 +46,8 @@ type
   entity_id_t* = uint32
   component_id_t* = uint32
   event_id_t* = uint32
+  system_id_t* = uint32
+  observer_id_t* = uint32
 
   Position* {.importc, nodecl, bycopy.} = object
     x*, y*: cfloat
@@ -124,7 +126,7 @@ proc flecs_register_observer*(
   num_events: uint32,
   callback: FlecsObserverCallback,
   callback_id: uint32,
-): uint32 {.importc.}
+): observer_id_t {.importc.}
 
 proc flecs_register_observer_ex*(
   include_component_ids: ptr uint32,
@@ -135,7 +137,7 @@ proc flecs_register_observer_ex*(
   num_events: uint32,
   callback: FlecsObserverCallback,
   callback_id: uint32,
-): uint32 {.importc.}
+): observer_id_t {.importc.}
 
 proc flecs_init*() {.importc.}
 proc flecs_progress*(delta_time: float32) {.importc.}
@@ -160,7 +162,7 @@ proc flecs_register_system*(
   num_components: uint32,
   callback: FlecsSystemCallback,
   callback_id: uint32,
-): uint32 {.importc.}
+): system_id_t {.importc.}
 
 proc flecs_register_system_ex*(
   name: cstring,
@@ -170,4 +172,4 @@ proc flecs_register_system_ex*(
   num_exclude_components: uint32,
   callback: FlecsSystemCallback,
   callback_id: uint32,
-): uint32 {.importc.}
+): system_id_t {.importc.}

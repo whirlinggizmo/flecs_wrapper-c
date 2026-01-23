@@ -94,7 +94,7 @@ proc observer_trampoline(
   else:
     echo "⚠️ No callback registered for id ", callback_id
 
-proc flecs_remove_observer*(id: uint32) =
+proc flecs_remove_observer*(id: observer_id_t) =
   ensureObserverCbInit()
   if observerCallbackMap.hasKey(id):
     observerCallbackMap.del(id)
@@ -104,7 +104,7 @@ proc flecs_remove_observer*(id: uint32) =
 
 proc flecs_add_observer*(
     components: openArray[uint32], events: openArray[uint32], callback: ObserverCallback
-): uint32 =
+): observer_id_t =
   ensureObserverCbInit()
   if callback.isNil:
     echo "⚠️ Warning: tried to register nil callback"
@@ -174,7 +174,7 @@ proc validateEventIds(events: openArray[event_id_t]) =
     if ev < 1:
       raise newException(ValueError, "Invalid event id: " & $ev)
 
-proc addObserverIds(components: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserverIds(components: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   if components.len == 0:
     raise newException(ValueError, "Observer must include at least one component")
   if events.len == 0:
@@ -212,16 +212,16 @@ proc addObserverIds(components: openArray[component_id_t], events: openArray[eve
     cbid,
   )
 
-proc addObserver*(components: openArray[Component], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserver*(components: openArray[Component], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverIds(toComponentIds(components), events, callback)
 
-proc addObserver*(components: openArray[string], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserver*(components: openArray[string], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverIds(toComponentIds(components), events, callback)
 
-proc addObserver*(components: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserver*(components: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverIds(components, events, callback)
 
-proc addObserverExIds(includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserverExIds(includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   if includeComponents.len == 0:
     raise newException(ValueError, "Observer must include at least one component")
   if events.len == 0:
@@ -261,7 +261,7 @@ proc addObserverExIds(includeComponents: openArray[component_id_t], excludeCompo
     cbid,
   )
 
-proc addObserverEx*(includeComponents: openArray[Component], excludeComponents: openArray[Component], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserverEx*(includeComponents: openArray[Component], excludeComponents: openArray[Component], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverExIds(
     toComponentIds(includeComponents),
     toComponentIds(excludeComponents),
@@ -269,8 +269,8 @@ proc addObserverEx*(includeComponents: openArray[Component], excludeComponents: 
     callback,
   )
 
-proc addObserverEx*(includeComponents: openArray[string], excludeComponents: openArray[string], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserverEx*(includeComponents: openArray[string], excludeComponents: openArray[string], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverExIds(toComponentIds(includeComponents), toComponentIds(excludeComponents), events, callback)
 
-proc addObserverEx*(includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): uint32 =
+proc addObserverEx*(includeComponents: openArray[component_id_t], excludeComponents: openArray[component_id_t], events: openArray[event_id_t], callback: ObserverIterCallback): observer_id_t =
   addObserverExIds(includeComponents, excludeComponents, events, callback)

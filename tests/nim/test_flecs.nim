@@ -39,15 +39,15 @@ suite "flecs core":
     defer: flecs_fini()
     flecs_set_threads(1)
 
-    let compId = c_flecs_component_create("CorePos", cast[uint32](8))
+    let compId: component_id_t = c_flecs_component_create("CorePos", cast[uint32](8))
     check compId != 0
     check flecs_component_get_id_by_name("CorePos") == compId
 
-    let tagId = flecs_component_create_tag("CoreTag")
+    let tagId: component_id_t = flecs_component_create_tag("CoreTag")
     check tagId != 0
     check flecs_component_is_tag(tagId)
 
-    let eId = flecs_entity_create("CoreEntity")
+    let eId: entity_id_t = flecs_entity_create("CoreEntity")
     check eId != 0
     check not flecs_entity_has_component_by_name(eId, "CoreTag")
     check flecs_entity_add_component_by_name(eId, "CoreTag")
@@ -63,15 +63,15 @@ suite "flecs core":
     flecs_set_threads(1)
 
     systemSeen = 0
-    let compId = c_flecs_component_create("CoreSysPos", cast[uint32](8))
+    let compId: component_id_t = c_flecs_component_create("CoreSysPos", cast[uint32](8))
     check compId != 0
 
-    let eId = flecs_entity_create("CoreSysEntity")
+    let eId: entity_id_t = flecs_entity_create("CoreSysEntity")
     check eId != 0
     check flecs_entity_add_component(eId, compId)
 
     var comps = [compId]
-    let sysId = flecs_register_system(
+    let sysId: system_id_t = flecs_register_system(
       "CoreSys",
       comps[0].addr,
       1'u32,
@@ -94,12 +94,12 @@ suite "flecs core":
     observerEvent = 0
     observerComp = 0
 
-    let compId = c_flecs_component_create("CoreObsPos", cast[uint32](8))
+    let compId: component_id_t = c_flecs_component_create("CoreObsPos", cast[uint32](8))
     check compId != 0
 
     var comps = [compId]
     var events = [ecsOnAdd]
-    let obsId = flecs_register_observer(
+    let obsId: observer_id_t = flecs_register_observer(
       comps[0].addr,
       1'u32,
       events[0].addr,
@@ -109,7 +109,7 @@ suite "flecs core":
     )
     check obsId != 0
 
-    let eId = flecs_entity_create("CoreObsEntity")
+    let eId: entity_id_t = flecs_entity_create("CoreObsEntity")
     check eId != 0
     check flecs_entity_add_component(eId, compId)
 
