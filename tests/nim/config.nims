@@ -14,17 +14,17 @@ when declared(task):
     switch("hints", "off")
     #switch("verbosity", "2")
 
-    proc createTempDir():string =
-        result = joinPath(basePath, "temp", "tests", "nim")
-        mkDir(result)
-
     proc runTest(testFile: string) : int =
-        let tempDir = createTempDir()
-        let cacheDir = joinPath(tempDir, "nimcache")
-        mkDir(cacheDir)
-        let baseName = changeFileExt(extractFilename(testFile), "")
-        let outFile = joinPath(tempDir, baseName)
-        var cmd = ["nim", "c", "-r", "--nimcache:" & cacheDir, "--out:" & outFile, joinPath(basePath, testFile)].join(" ")
+        var testFile = testFile
+        if  testFile.len == 0:
+            testFile = "<unknown>"
+        let buildRootDir = joinPath(basePath, "build")
+        let buildDir = joinPath(buildRootDir, splitPath(testFile).head)
+        let testFilePath = joinPath(basePath, testFile)
+        if not fileExists(testFilePath):
+            echo testFile & ": FAILED (file not found)"
+            return -1
+        var cmd = ["nim", "c", "-r", "--outDir:" & buildDir, joinPath(basePath, testFile)].join(" ")
         let cmdResult = gorgeEx(cmd)
         if cmdResult.exitCode != 0:
             echo testFile & ": FAILED: " & cmdResult.output
@@ -34,6 +34,7 @@ when declared(task):
 
     task test, "Run Nim tests":
         let tests = [
+            "",
             "tests/nim/test_flecs.nim",
             "tests/nim/test_components.nim",
             "tests/nim/test_entities.nim",
@@ -42,7 +43,8 @@ when declared(task):
         ]
         var totalFailures = 0
         for testFile in tests:
-            totalFailures += runTest(testFile)
+            if runTest(testFile) != 0:
+                totalFailures+=1
         if totalFailures == 0:
             echo "All tests passed!"
         else:
