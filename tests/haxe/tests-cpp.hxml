@@ -1,0 +1,7 @@
+-lib utest
+-cp src
+--main hxcore.flecs.flecs_wrapper.tests.haxe.RunTests
+--dce no
+-cpp out/flecs-wrapper-tests-cpp
+-D HXCPP_NO_CLEAN
+--cmd ./out/flecs-wrapper-tests-cpp/RunTests
