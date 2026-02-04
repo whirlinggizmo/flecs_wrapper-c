@@ -5,8 +5,11 @@
 #include "flecs.h"
 #include "flecs_wrapper_types.h"
 
-void clear_system_info(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+void clear_system_info(void);
 
 #ifdef __cplusplus
 }
