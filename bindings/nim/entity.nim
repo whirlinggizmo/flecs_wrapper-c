@@ -65,3 +65,43 @@ proc mark*(entity: Entity, name: string) =
   if id == 0:
     raise newException(ValueError, "Unknown component name: " & name)
   flecs_entity_mark_component(entity.id, id)
+
+proc pairId*(relation: Component, obj: Entity): pair_id_t =
+  flecs_pair_register(relation.id, obj.id)
+
+proc addPair*(entity: Entity, relation: Component, obj: Entity): bool =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    raise newException(ValueError, "pair_register failed")
+  flecs_entity_add_pair(entity.id, pid)
+
+proc removePair*(entity: Entity, relation: Component, obj: Entity): bool =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    raise newException(ValueError, "pair_register failed")
+  flecs_entity_remove_pair(entity.id, pid)
+
+proc hasPair*(entity: Entity, relation: Component, obj: Entity): bool =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    return false
+  flecs_entity_has_pair(entity.id, pid)
+
+proc setPair*[T](entity: Entity, relation: Component, obj: Entity, value: T): bool =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    raise newException(ValueError, "pair_register failed")
+  var tmp = value
+  flecs_entity_set_pair(entity.id, pid, addr tmp)
+
+proc setPair*[T](entity: Entity, relation: Component, obj: Entity, value: ptr T): bool =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    raise newException(ValueError, "pair_register failed")
+  flecs_entity_set_pair(entity.id, pid, value)
+
+proc getPair*[T](entity: Entity, relation: Component, obj: Entity): ptr T =
+  let pid = pairId(relation, obj)
+  if pid == 0:
+    return nil
+  cast[ptr T](flecs_entity_get_pair(entity.id, pid))

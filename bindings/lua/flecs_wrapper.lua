@@ -70,6 +70,7 @@ typedef unsigned int uint32_t;
 typedef uint32_t entity_id_t;
 typedef uint32_t component_id_t;
 typedef uint32_t event_id_t;
+typedef uint32_t pair_id_t;
 
 // known components
 typedef struct Position { float x; float y; } Position;
@@ -126,6 +127,17 @@ int flecs_entity_remove_component_by_name(entity_id_t entity_id, const char *com
 int flecs_entity_set_component(entity_id_t entity_id, component_id_t component_id, const void *component_data_ptr);
 const void *flecs_entity_get_component(entity_id_t entity_id, component_id_t component_id);
 void flecs_entity_mark_component(entity_id_t entity_id, component_id_t component_id);
+
+pair_id_t flecs_pair_register(component_id_t relation_component_id, entity_id_t object_entity_id);
+pair_id_t flecs_pair_register_entity(entity_id_t relation_entity_id, entity_id_t object_entity_id);
+pair_id_t flecs_pair_register_by_name(const char *relation_name, const char *object_name);
+int flecs_pair_unregister(pair_id_t pair_id);
+
+int flecs_entity_add_pair(entity_id_t entity_id, pair_id_t pair_id);
+int flecs_entity_remove_pair(entity_id_t entity_id, pair_id_t pair_id);
+int flecs_entity_has_pair(entity_id_t entity_id, pair_id_t pair_id);
+int flecs_entity_set_pair(entity_id_t entity_id, pair_id_t pair_id, const void *pair_data_ptr);
+const void *flecs_entity_get_pair(entity_id_t entity_id, pair_id_t pair_id);
 
 uint32_t flecs_register_system(
   const char *name,
@@ -301,6 +313,49 @@ end
 
 function M.entity_get_component(entity_id, component_id, ctype)
   local ptr = C.flecs_entity_get_component(entity_id, component_id)
+  if ptr == nil then
+    return nil
+  end
+  if ctype then
+    return ffi.cast(ctype, ptr)
+  end
+  return ptr
+end
+
+function M.pair_register(relation_component_id, object_entity_id)
+  return C.flecs_pair_register(relation_component_id, object_entity_id)
+end
+
+function M.pair_register_entity(relation_entity_id, object_entity_id)
+  return C.flecs_pair_register_entity(relation_entity_id, object_entity_id)
+end
+
+function M.pair_register_by_name(relation_name, object_name)
+  return C.flecs_pair_register_by_name(relation_name, object_name)
+end
+
+function M.pair_unregister(pair_id)
+  return C.flecs_pair_unregister(pair_id) ~= 0
+end
+
+function M.entity_add_pair(entity_id, pair_id)
+  return C.flecs_entity_add_pair(entity_id, pair_id)
+end
+
+function M.entity_remove_pair(entity_id, pair_id)
+  return C.flecs_entity_remove_pair(entity_id, pair_id)
+end
+
+function M.entity_has_pair(entity_id, pair_id)
+  return C.flecs_entity_has_pair(entity_id, pair_id) ~= 0
+end
+
+function M.entity_set_pair(entity_id, pair_id, data_ptr)
+  return C.flecs_entity_set_pair(entity_id, pair_id, data_ptr)
+end
+
+function M.entity_get_pair(entity_id, pair_id, ctype)
+  local ptr = C.flecs_entity_get_pair(entity_id, pair_id)
   if ptr == nil then
     return nil
   end

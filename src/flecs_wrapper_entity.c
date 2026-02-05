@@ -9,6 +9,7 @@
 #include "flecs_wrapper_components.h"
 #include "flecs_wrapper_world.h" // for world access
 #include "flecs_wrapper_entity.h"
+#include "flecs_wrapper_id.h"
 
 // components
 
@@ -22,50 +23,47 @@
 // serialization without leaking Flecs-owned ecs_entity_t values.
 #define MAX_ENTITIES 65536
 static ecs_entity_t entity_ecs_id_table[MAX_ENTITIES] = {0};
-static uint32_t entity_ecs_id_count = 1; // reserved index 0 for unknown
 static uint32_t free_entity_ids[MAX_ENTITIES] = {0};
-static uint32_t free_entity_ids_count = 0;
-static bool entity_id_in_free_list[MAX_ENTITIES] = {false};
+static flecs_id_pool_t entity_id_pool;
+static bool entity_pool_inited = false;
 
 static entity_id_t alloc_entity_id(void)
 {
-    if (free_entity_ids_count > 0)
-    {
-        uint32_t id = free_entity_ids[--free_entity_ids_count];
-        entity_id_in_free_list[id] = false;
-        return id;
+    if (!entity_pool_inited) {
+        flecs_id_pool_init(&entity_id_pool, MAX_ENTITIES, free_entity_ids, MAX_ENTITIES);
+        entity_pool_inited = true;
     }
-    if (entity_ecs_id_count >= MAX_ENTITIES)
+    uint32_t index = flecs_id_pool_alloc(&entity_id_pool);
+    if (index == 0) {
         return 0;
-    return entity_ecs_id_count++;
+    }
+    return flecs_id_make(FLECS_ID_ENTITY, index);
 }
 
 static void free_entity_id(entity_id_t id)
 {
-    if (id == 0 || id >= MAX_ENTITIES)
+    if (!flecs_id_is_type(id, FLECS_ID_ENTITY)) {
         return;
-    if (entity_ecs_id_table[id] != 0)
-        return;
-    if (entity_id_in_free_list[id])
-        return;
-    if (free_entity_ids_count < MAX_ENTITIES)
-    {
-        free_entity_ids[free_entity_ids_count++] = id;
-        entity_id_in_free_list[id] = true;
     }
-    else
-    {
-        fprintf(stderr, "Free entity id list overflow (id %u)\n", id);
+    uint32_t index = flecs_id_index(id);
+    if (index == 0 || index >= MAX_ENTITIES) {
+        return;
     }
+    if (entity_ecs_id_table[index] != 0) {
+        return;
+    }
+    flecs_id_pool_free(&entity_id_pool, index);
 }
 
 void clear_entity_info(void)
 {
-    entity_ecs_id_count = 1;
-    free_entity_ids_count = 0;
+    if (!entity_pool_inited) {
+        flecs_id_pool_init(&entity_id_pool, MAX_ENTITIES, free_entity_ids, MAX_ENTITIES);
+        entity_pool_inited = true;
+    }
+    flecs_id_pool_reset(&entity_id_pool);
     memset(entity_ecs_id_table, 0, sizeof(entity_ecs_id_table));
     memset(free_entity_ids, 0, sizeof(free_entity_ids));
-    memset(entity_id_in_free_list, 0, sizeof(entity_id_in_free_list));
 }
 
 entity_id_t get_entity_id(ecs_entity_t ecs_id)
@@ -82,8 +80,13 @@ entity_id_t get_entity_id(ecs_entity_t ecs_id)
 ecs_entity_t get_entity_ecs_id(entity_id_t id)
 {
     FLECS_WRAPPER_ASSERT_WORLD();
-    if ((uint32_t)id < entity_ecs_id_count)
-        return entity_ecs_id_table[id];
+    if (!flecs_id_is_type(id, FLECS_ID_ENTITY)) {
+        return 0;
+    }
+    uint32_t index = flecs_id_index(id);
+    if (index != 0 && index < MAX_ENTITIES) {
+        return entity_ecs_id_table[index];
+    }
     return 0;
 }
 
@@ -118,10 +121,12 @@ static entity_id_t create_entity(const char *name)
         return 0;
     }
 
+    uint32_t index = flecs_id_index(id);
+
     // Sanity check
-    if (entity_ecs_id_table[id] != 0)
+    if (entity_ecs_id_table[index] != 0)
     {
-        fprintf(stderr, "The current entity index (%u) is not empty. This shouldn't happen!\n", id);
+        fprintf(stderr, "The current entity index (%u) is not empty. This shouldn't happen!\n", index);
         free_entity_id(id);
         return 0;
     }
@@ -134,7 +139,7 @@ static entity_id_t create_entity(const char *name)
         return 0;
     }
 
-    entity_ecs_id_table[id] = entity_ecs_id;        // forward mapping
+    entity_ecs_id_table[index] = entity_ecs_id;        // forward mapping
     ecs_set(world, entity_ecs_id, EntityId, {id});
 
     return id;
@@ -150,7 +155,10 @@ static bool destroy_entity(entity_id_t entity_id)
         return false;
     }
     ecs_delete(world, entity_ecs_id);
-    entity_ecs_id_table[entity_id] = 0;
+    uint32_t index = flecs_id_index(entity_id);
+    if (index < MAX_ENTITIES) {
+        entity_ecs_id_table[index] = 0;
+    }
     free_entity_id(entity_id);
     return true;
 }

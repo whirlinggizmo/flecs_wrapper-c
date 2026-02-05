@@ -6,6 +6,7 @@
 #include <string.h>
 #include <flecs.h>
 #include "flecs_wrapper_types.h"
+#include "flecs_wrapper_id.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -57,9 +58,9 @@ extern "C"
         component_info_table[component_info_count].ecs_id = ecs_id(Type);                                   \
         strcpy(component_info_table[component_info_count].name, #Type);                                     \
         component_info_table[component_info_count].size = sizeof(Type);                                     \
-        component_info_table[component_info_count].id = component_info_count;                               \
-        component_ecs_hash_insert(component_info_table[component_info_count].ecs_id, component_info_count); \
-        component_name_hash_insert(#Type, component_info_count);                                            \
+        component_info_table[component_info_count].id = flecs_id_make(FLECS_ID_COMPONENT, component_info_count); \
+        component_ecs_hash_insert(component_info_table[component_info_count].ecs_id, component_info_table[component_info_count].id); \
+        component_name_hash_insert(#Type, component_info_table[component_info_count].id);                   \
         component_info_count++;                                                                             \
     } while (0)
 

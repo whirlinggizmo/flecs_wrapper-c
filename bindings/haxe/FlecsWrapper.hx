@@ -21,6 +21,7 @@ typedef ComponentId = UInt32;
 typedef EventId = UInt32;
 typedef ObserverId = UInt32;
 typedef SystemId = UInt32;
+typedef PairId = UInt32;
 
 // Native callback signatures (match flecs_wrapper.h)
 typedef SystemCallbackNative = cpp.Callable<
@@ -59,6 +60,8 @@ typedef ObserverCallbackNative = cpp.Callable<
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper.c" />
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_component.c" />
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_components.c" />
+  <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_id.c" />
+  <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_pair.c" />
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_world.c" />
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_entity.c" />
   <file name="${haxelib:hxcore}/src/hxcore/flecs/flecs_wrapper/src/flecs_wrapper_event.c" />
@@ -128,6 +131,34 @@ class FlecsWrapper {
 
   @:native("flecs_entity_mark_component")
   extern public static function entityMarkComponent(entityId:EntityId, componentId:ComponentId):Void;
+
+  // Pair management
+  @:native("flecs_pair_register")
+  extern public static function pairRegister(relationComponentId:ComponentId, objectEntityId:EntityId):PairId;
+
+  @:native("flecs_pair_register_entity")
+  extern public static function pairRegisterEntity(relationEntityId:EntityId, objectEntityId:EntityId):PairId;
+
+  @:native("flecs_pair_register_by_name")
+  extern public static function pairRegisterByName(relationName:String, objectName:String):PairId;
+
+  @:native("flecs_pair_unregister")
+  extern public static function pairUnregister(pairId:PairId):Bool;
+
+  @:native("flecs_entity_add_pair")
+  extern public static function entityAddPair(entityId:EntityId, pairId:PairId):Bool;
+
+  @:native("flecs_entity_remove_pair")
+  extern public static function entityRemovePair(entityId:EntityId, pairId:PairId):Bool;
+
+  @:native("flecs_entity_has_pair")
+  extern public static function entityHasPair(entityId:EntityId, pairId:PairId):Bool;
+
+  @:native("flecs_entity_set_pair")
+  extern public static function entitySetPair(entityId:EntityId, pairId:PairId, pairPtr:Pointer<cpp.Void>):Bool;
+
+  @:native("flecs_entity_get_pair")
+  extern public static function entityGetPair(entityId:EntityId, pairId:PairId):Pointer<cpp.Void>;
 
   // Entity lifecycle
   @:native("flecs_entity_create")

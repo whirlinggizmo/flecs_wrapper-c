@@ -108,6 +108,32 @@ class TestFlecsWrapper extends Test {
       Assert.equals(1, vPtr.ref.x);
       Assert.equals(2, vPtr.ref.y);
 
+      var objId:EntityId = Flecs.entityCreate("CorePairObj");
+      Assert.isTrue(objId != 0);
+
+      var pairId = Flecs.pairRegister(compId, objId);
+      Assert.isTrue(pairId != 0);
+      Assert.isFalse(Flecs.entityHasPair(eId, pairId));
+      Assert.isTrue(Flecs.entityAddPair(eId, pairId));
+      Assert.isTrue(Flecs.entityHasPair(eId, pairId));
+
+      var p1 = new Vec2(7, 8);
+      Assert.isTrue(Flecs.entitySetPair(eId, pairId, cast Pointer.addressOf(p1)));
+      var pPtr = Flecs.entityGetPair(eId, pairId);
+      Assert.notNull(pPtr);
+      var pv:Pointer<Vec2> = Pointer.fromRaw(cast pPtr);
+      Assert.equals(7, pv.ref.x);
+      Assert.equals(8, pv.ref.y);
+
+      Assert.isTrue(Flecs.entityRemovePair(eId, pairId));
+      Assert.isFalse(Flecs.entityHasPair(eId, pairId));
+
+      Assert.isTrue(Flecs.pairUnregister(pairId));
+      Assert.isFalse(Flecs.entityAddPair(eId, pairId));
+      var pairId2 = Flecs.pairRegister(compId, objId);
+      Assert.isTrue(pairId2 != 0);
+      Assert.isTrue(Flecs.entityAddPair(eId, pairId2));
+
       var comps = [compId];
       var events = [Flecs.EcsOnAdd, Flecs.EcsOnSet];
       var obsId = Flecs.registerObserver(
@@ -147,6 +173,7 @@ class TestFlecsWrapper extends Test {
       );
       Assert.equals(0, badObs);
 
+      Assert.isTrue(Flecs.entityDestroy(objId));
       Assert.isTrue(Flecs.entityDestroy(eId));
     });
   }

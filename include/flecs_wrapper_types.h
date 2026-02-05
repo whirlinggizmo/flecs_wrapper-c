@@ -9,5 +9,6 @@ typedef uint32_t component_id_t;
 typedef uint32_t event_id_t;
 typedef uint32_t observer_id_t;
 typedef uint32_t system_id_t;
+typedef uint32_t pair_id_t;
 
 #endif // FLECS_WRAPPER_TYPES_H

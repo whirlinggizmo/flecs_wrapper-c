@@ -5,6 +5,7 @@
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_entity.h"
+#include "flecs_wrapper_id.h"
 
 // components
 #include "flecs_wrapper_components.h"
@@ -66,12 +67,18 @@ void component_name_hash_insert(const char *name, uint32_t id)
 
 const ComponentInfo *get_component_info(component_id_t component_id)
 {
-    if (component_id == 0 || component_id >= component_info_count)
+    if (!flecs_id_is_type(component_id, FLECS_ID_COMPONENT))
+    {
+        fprintf(stderr, "Unable to get component_info for component_id %u (invalid type)\n", component_id);
+        return NULL;
+    }
+    uint32_t index = flecs_id_index(component_id);
+    if (index == 0 || index >= component_info_count)
     {
         fprintf(stderr, "Unable to get component_info for component_id %u (out of range 1..%u)\n", component_id, component_info_count - 1);
         return NULL;
     }
-    return &component_info_table[component_id];
+    return &component_info_table[index];
 }
 
 const ComponentInfo *get_component_info_by_name(const char *name)
@@ -119,12 +126,18 @@ component_id_t get_component_id_by_name(const char *name)
 
 const ecs_entity_t get_component_ecs_id(component_id_t component_id)
 {
-    if ((component_id < 1) || (component_id >= component_info_count))
+    if (!flecs_id_is_type(component_id, FLECS_ID_COMPONENT))
+    {
+        fprintf(stderr, "Unable to get ecs_id for component_id %u (invalid type)\n", component_id);
+        return 0;
+    }
+    uint32_t index = flecs_id_index(component_id);
+    if ((index < 1) || (index >= component_info_count))
     {
         fprintf(stderr, "Unable to get ecs_id for component_id %u (out of range 1..%u)\n", component_id, component_info_count - 1);
         return 0;
     }
-    return component_info_table[component_id].ecs_id;
+    return component_info_table[index].ecs_id;
 }
 
 const ecs_entity_t get_component_ecs_id_by_name(const char *name)
@@ -154,12 +167,18 @@ const bool is_component_registered(const char* name)
 
 const uint32_t get_component_size(component_id_t component_id)
 {
-    if ((component_id < 1) || (component_id >= component_info_count))
+    if (!flecs_id_is_type(component_id, FLECS_ID_COMPONENT))
+    {
+        fprintf(stderr, "Unable to get size for component_id %u (invalid type)\n", component_id);
+        return 0;
+    }
+    uint32_t index = flecs_id_index(component_id);
+    if ((index < 1) || (index >= component_info_count))
     {
         fprintf(stderr, "Unable to get size for component_id %u (out of range 1..%u)\n", component_id, component_info_count - 1);
         return 0;
     }
-    return component_info_table[component_id].size;
+    return component_info_table[index].size;
 }
 
 const uint32_t get_component_size_by_ecs_id(ecs_entity_t ecs_id)
@@ -210,19 +229,19 @@ component_id_t create_component(const char* name, uint32_t size)
         return 0;
     }
 
-    uint32_t id = component_info_count;
-    component_info_table[id].ecs_id = comp;
-    strncpy(component_info_table[id].name, name, sizeof(component_info_table[id].name) - 1);
-    component_info_table[id].name[sizeof(component_info_table[id].name) - 1] = '\0';
-    component_info_table[id].size = size;
-    component_info_table[id].id = id;
+    uint32_t index = component_info_count;
+    component_info_table[index].ecs_id = comp;
+    strncpy(component_info_table[index].name, name, sizeof(component_info_table[index].name) - 1);
+    component_info_table[index].name[sizeof(component_info_table[index].name) - 1] = '\0';
+    component_info_table[index].size = size;
+    component_info_table[index].id = flecs_id_make(FLECS_ID_COMPONENT, index);
 
-    component_ecs_hash_insert(comp, id);
-    component_name_hash_insert(name, id);
+    component_ecs_hash_insert(comp, component_info_table[index].id);
+    component_name_hash_insert(name, component_info_table[index].id);
 
     component_info_count++;
 
-    return id;
+    return component_info_table[index].id;
 }
 
 component_id_t create_tag_component(const char *name)
@@ -251,19 +270,19 @@ component_id_t create_tag_component(const char *name)
         return 0;
     }
 
-    uint32_t id = component_info_count;
-    component_info_table[id].ecs_id = tag;
-    strncpy(component_info_table[id].name, name, sizeof(component_info_table[id].name) - 1);
-    component_info_table[id].name[sizeof(component_info_table[id].name) - 1] = '\0';
-    component_info_table[id].size = 0;
-    component_info_table[id].id = id;
+    uint32_t index = component_info_count;
+    component_info_table[index].ecs_id = tag;
+    strncpy(component_info_table[index].name, name, sizeof(component_info_table[index].name) - 1);
+    component_info_table[index].name[sizeof(component_info_table[index].name) - 1] = '\0';
+    component_info_table[index].size = 0;
+    component_info_table[index].id = flecs_id_make(FLECS_ID_COMPONENT, index);
 
-    component_ecs_hash_insert(tag, id);
-    component_name_hash_insert(name, id);
+    component_ecs_hash_insert(tag, component_info_table[index].id);
+    component_name_hash_insert(name, component_info_table[index].id);
 
     component_info_count++;
 
-    return id;
+    return component_info_table[index].id;
 }
 
 
@@ -288,7 +307,12 @@ EXPORT component_id_t flecs_component_get_id_by_name(const char *name)
     {
         if (strcmp(component_info_table[i].name, name) == 0)
         {
-            return i;
+            component_id_t id = component_info_table[i].id;
+            if (!flecs_id_is_type(id, FLECS_ID_COMPONENT)) {
+                id = flecs_id_make(FLECS_ID_COMPONENT, i);
+                component_info_table[i].id = id;
+            }
+            return id;
         }
     }
     return 0;

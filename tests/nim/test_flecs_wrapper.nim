@@ -84,6 +84,31 @@ suite "flecs wrapper core":
     check vptr[].x == 1
     check vptr[].y == 2
 
+    let objId: entity_id_t = flecs_entity_create("CorePairObj")
+    check objId != 0
+
+    let pairId: pair_id_t = flecs_pair_register(compId, objId)
+    check pairId != 0
+    check not flecs_entity_has_pair(eId, pairId)
+    check flecs_entity_add_pair(eId, pairId)
+    check flecs_entity_has_pair(eId, pairId)
+
+    var pv = Vec2(x: 7, y: 8)
+    check flecs_entity_set_pair(eId, pairId, addr pv)
+    let pairPtr = flecs_entity_get_pair(eId, pairId)
+    check pairPtr != nil
+    let pvPtr = cast[ptr Vec2](pairPtr)
+    check pvPtr[].x == 7
+    check pvPtr[].y == 8
+    check flecs_entity_remove_pair(eId, pairId)
+    check not flecs_entity_has_pair(eId, pairId)
+
+    check flecs_pair_unregister(pairId)
+    check not flecs_entity_add_pair(eId, pairId)
+    let pairId2: pair_id_t = flecs_pair_register(compId, objId)
+    check pairId2 != 0
+    check flecs_entity_add_pair(eId, pairId2)
+
     var comps = [compId]
     var events = [ecsOnAdd, ecsOnSet]
     let obsId: observer_id_t = flecs_register_observer(
@@ -123,4 +148,5 @@ suite "flecs wrapper core":
     )
     check badObs == 0
 
+    check flecs_entity_destroy(objId)
     check flecs_entity_destroy(eId)

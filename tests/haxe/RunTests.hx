@@ -12,6 +12,7 @@ class RunTests {
     runner.addCase(new TestEntities());
     runner.addCase(new TestSystems());
     runner.addCase(new TestObservers());
+    runner.addCase(new TestPairs());
     Report.create(runner);
     runner.run();
   }

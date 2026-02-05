@@ -5,6 +5,7 @@ import cpp.UInt32;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.PairId;
 
 class Entity {
   public var id:EntityId;
@@ -99,5 +100,56 @@ class Entity {
       return;
     }
     FlecsWrapper.entityMarkComponent(id, cast comp);
+  }
+
+  private function resolvePairId(relation:Dynamic, object:Dynamic):PairId {
+    if (Std.isOfType(relation, Component)) {
+      var relComp:Component = cast relation;
+      if (Std.isOfType(object, Entity)) {
+        return FlecsWrapper.pairRegister(relComp.id, cast(object, Entity).id);
+      }
+      return FlecsWrapper.pairRegister(relComp.id, cast object);
+    }
+    if (Std.isOfType(relation, Entity)) {
+      var relEnt:Entity = cast relation;
+      if (Std.isOfType(object, Entity)) {
+        return FlecsWrapper.pairRegisterEntity(relEnt.id, cast(object, Entity).id);
+      }
+      return FlecsWrapper.pairRegisterEntity(relEnt.id, cast object);
+    }
+    if (Std.isOfType(relation, String) && Std.isOfType(object, String)) {
+      return FlecsWrapper.pairRegisterByName(cast relation, cast object);
+    }
+    throw 'Unsupported pair relation/object types';
+  }
+
+  public function addPair(relation:Dynamic, object:Dynamic):Bool {
+    var pairId = resolvePairId(relation, object);
+    return FlecsWrapper.entityAddPair(id, pairId);
+  }
+
+  public function removePair(relation:Dynamic, object:Dynamic):Bool {
+    var pairId = resolvePairId(relation, object);
+    return FlecsWrapper.entityRemovePair(id, pairId);
+  }
+
+  public function hasPair(relation:Dynamic, object:Dynamic):Bool {
+    var pairId = resolvePairId(relation, object);
+    return FlecsWrapper.entityHasPair(id, pairId);
+  }
+
+  public function setPairPtr(relation:Dynamic, object:Dynamic, value:Pointer<cpp.Void>):Bool {
+    var pairId = resolvePairId(relation, object);
+    return FlecsWrapper.entitySetPair(id, pairId, value);
+  }
+
+  public function getPairPtr(relation:Dynamic, object:Dynamic):Pointer<cpp.Void> {
+    var pairId = resolvePairId(relation, object);
+    return FlecsWrapper.entityGetPair(id, pairId);
+  }
+
+  @:generic
+  public function getPairPtrTyped<T>(relation:Dynamic, object:Dynamic):Pointer<T> {
+    return cast getPairPtr(relation, object);
   }
 }

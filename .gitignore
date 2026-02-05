@@ -1,5 +1,6 @@
 /build
 /lib/*.a
 /lib/*.so
-lib/test_system_ex
+/tests/nim/out/
+/tests/nim/*_d
 /temp

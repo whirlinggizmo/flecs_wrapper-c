@@ -8,10 +8,12 @@
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_event.h"
 #include "flecs_wrapper_system.h"
+#include "flecs_wrapper_pair.h"
 
 static void flecs_wrapper_reset_state(void)
 {
     clear_component_info();
+    clear_pair_info();
     clear_entity_info();
     clear_event_table();
     clear_observer_info();

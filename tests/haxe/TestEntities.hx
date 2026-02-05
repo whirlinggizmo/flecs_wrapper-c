@@ -2,6 +2,7 @@ package hxcore.flecs.flecs_wrapper.tests.haxe;
 
 import cpp.Float32;
 import cpp.Native;
+import cpp.Pointer;
 import utest.Test;
 import utest.Assert;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.Component;
@@ -42,6 +43,25 @@ class TestEntities extends Test {
       Assert.isTrue(Math.abs(p.x - 2.0) < 1e-6);
       Assert.isTrue(Math.abs(p.y - -1.0) < 1e-6);
 
+      var rel = Component.create("HaxePairRel", Native.sizeof(TestEntPos));
+      var obj = Entity.create("HaxePairObj");
+      Assert.isFalse(e.hasPair(rel, obj));
+      Assert.isTrue(e.addPair(rel, obj));
+      Assert.isTrue(e.hasPair(rel, obj));
+
+      var relVal = new TestEntPos();
+      relVal.x = 7.0;
+      relVal.y = 8.0;
+      Assert.isTrue(e.setPairPtr(rel, obj, cast Pointer.addressOf(relVal)));
+      var pairPtr:cpp.Pointer<TestEntPos> = e.getPairPtrTyped(rel, obj);
+      Assert.isTrue(pairPtr != null);
+      Assert.isTrue(Math.abs(pairPtr.ref.x - 7.0) < 1e-6);
+      Assert.isTrue(Math.abs(pairPtr.ref.y - 8.0) < 1e-6);
+
+      Assert.isTrue(e.removePair(rel, obj));
+      Assert.isFalse(e.hasPair(rel, obj));
+
+      Assert.isTrue(obj.destroy());
       Assert.isTrue(e.destroy());
     });
   }

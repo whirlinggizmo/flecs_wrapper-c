@@ -5,6 +5,7 @@ local helpers = {
   entity = require("flecs_wrapper.bindings.lua.entity"),
   observer = require("flecs_wrapper.bindings.lua.observer"),
   system = require("flecs_wrapper.bindings.lua.system"),
+  pair = require("flecs_wrapper.bindings.lua.pair"),
 }
 
 core.helpers = helpers

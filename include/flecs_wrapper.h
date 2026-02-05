@@ -7,6 +7,7 @@
 #include "flecs_wrapper_types.h"
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_component.h"
+#include "flecs_wrapper_pair.h"
 #include "flecs_wrapper_event.h"
 #include "flecs_wrapper_system.h"
 

@@ -29,6 +29,8 @@ when defined(FLECS_BUILD_SOURCE):
   {.compile: flecsWrapperSrcDir / "flecs_wrapper_entity.c".}
   {.compile: flecsWrapperSrcDir / "flecs_wrapper_component.c".}
   {.compile: flecsWrapperSrcDir / "flecs_wrapper_components.c".}
+  {.compile: flecsWrapperSrcDir / "flecs_wrapper_id.c".}
+  {.compile: flecsWrapperSrcDir / "flecs_wrapper_pair.c".}
   {.compile: flecsWrapperSrcDir / "flecs_wrapper_event.c".}
   {.compile: flecsWrapperSrcDir / "flecs_wrapper_system.c".}
   {.compile: flecsWrapperSrcDir / "systems" / "move_system.c".}
@@ -48,6 +50,7 @@ type
   event_id_t* = uint32
   system_id_t* = uint32
   observer_id_t* = uint32
+  pair_id_t* = uint32
 
   Position* {.importc, nodecl, bycopy.} = object
     x*, y*: cfloat
@@ -103,6 +106,17 @@ proc flecs_entity_set_component*(
 ): bool {.importc.}
 
 proc flecs_entity_mark_component*(entity_id: uint32, component_id: uint32) {.importc.}
+
+proc flecs_pair_register*(relation_component_id: component_id_t, object_entity_id: entity_id_t): pair_id_t {.importc.}
+proc flecs_pair_register_entity*(relation_entity_id: entity_id_t, object_entity_id: entity_id_t): pair_id_t {.importc.}
+proc flecs_pair_register_by_name*(relation_name: cstring, object_name: cstring): pair_id_t {.importc.}
+proc flecs_pair_unregister*(pair_id: pair_id_t): bool {.importc.}
+
+proc flecs_entity_add_pair*(entity_id: entity_id_t, pair_id: pair_id_t): bool {.importc.}
+proc flecs_entity_remove_pair*(entity_id: entity_id_t, pair_id: pair_id_t): bool {.importc.}
+proc flecs_entity_has_pair*(entity_id: entity_id_t, pair_id: pair_id_t): bool {.importc.}
+proc flecs_entity_set_pair*(entity_id: entity_id_t, pair_id: pair_id_t, pair_pointer: pointer): bool {.importc.}
+proc flecs_entity_get_pair*(entity_id: entity_id_t, pair_id: pair_id_t): pointer {.importc.}
 
 proc flecs_entity_create*(name: cstring): uint32 {.importc.}
 proc flecs_entity_destroy*(entity_id: uint32): bool {.importc.}

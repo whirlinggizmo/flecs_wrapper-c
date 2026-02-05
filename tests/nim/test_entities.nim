@@ -28,4 +28,21 @@ suite "entities":
       check abs(p[].x - 2.0) < 1e-6
       check abs(p[].y - -1.0) < 1e-6
 
+      let rel = createComponent[Position]("NimPairRel")
+      let obj = createEntity("NimPairObj")
+
+      check not hasPair(e, rel, obj)
+      check addPair(e, rel, obj)
+      check hasPair(e, rel, obj)
+
+      check setPair(e, rel, obj, Position(x: 7.0, y: 8.0))
+      let pp = getPair[Position](e, rel, obj)
+      check pp != nil
+      check abs(pp[].x - 7.0) < 1e-6
+      check abs(pp[].y - 8.0) < 1e-6
+
+      check removePair(e, rel, obj)
+      check not hasPair(e, rel, obj)
+      check destroy(obj)
+
       check destroy(e)

@@ -7,6 +7,8 @@
 #include "flecs_wrapper.h"
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_components.h"
+#include "flecs_wrapper_pair.h"
+#include "flecs_wrapper_id.h"
 
 #include "flecs_wrapper_world.h" // for world access
 
@@ -33,19 +35,32 @@ void clear_event_table(void) {
 
 #define MAX_OBSERVERS 65536
 static ecs_entity_t observer_ecs_id_table[MAX_OBSERVERS] = {0};
-static uint32_t observer_ecs_id_count = 1;
+static uint32_t observer_free_ids[MAX_OBSERVERS] = {0};
+static flecs_id_pool_t observer_id_pool;
+static bool observer_pool_inited = false;
 
 void clear_observer_info(void)
 {
-    observer_ecs_id_count = 1;
+    if (!observer_pool_inited) {
+        flecs_id_pool_init(&observer_id_pool, MAX_OBSERVERS, observer_free_ids, MAX_OBSERVERS);
+        observer_pool_inited = true;
+    }
+    flecs_id_pool_reset(&observer_id_pool);
     memset(observer_ecs_id_table, 0, sizeof(observer_ecs_id_table));
+    memset(observer_free_ids, 0, sizeof(observer_free_ids));
 }
 
 static observer_id_t alloc_observer_id(void)
 {
-    if (observer_ecs_id_count >= MAX_OBSERVERS)
+    if (!observer_pool_inited) {
+        flecs_id_pool_init(&observer_id_pool, MAX_OBSERVERS, observer_free_ids, MAX_OBSERVERS);
+        observer_pool_inited = true;
+    }
+    uint32_t index = flecs_id_pool_alloc(&observer_id_pool);
+    if (index == 0) {
         return 0;
-    return observer_ecs_id_count++;
+    }
+    return flecs_id_make(FLECS_ID_OBSERVER, index);
 }
 
 static observer_id_t register_observer_id(ecs_entity_t ecs_id)
@@ -53,7 +68,8 @@ static observer_id_t register_observer_id(ecs_entity_t ecs_id)
     observer_id_t id = alloc_observer_id();
     if (id == 0)
         return 0;
-    observer_ecs_id_table[id] = ecs_id;
+    uint32_t index = flecs_id_index(id);
+    observer_ecs_id_table[index] = ecs_id;
     return id;
 }
 
@@ -175,6 +191,27 @@ static void free_observer_callback_ctx(void *ctx)
     free(cb_ctx);
 }
 
+static bool resolve_id_info(component_id_t id, ecs_id_t *ecs_id, uint32_t *size_out)
+{
+    if (flecs_id_is_type(id, FLECS_ID_PAIR)) {
+        const PairInfo *pi = get_pair_info((pair_id_t)id);
+        if (!pi) {
+            return false;
+        }
+        if (ecs_id) *ecs_id = pi->ecs_id;
+        if (size_out) *size_out = pi->size;
+        return true;
+    }
+
+    const ComponentInfo *ci = get_component_info(id);
+    if (!ci) {
+        return false;
+    }
+    if (ecs_id) *ecs_id = ci->ecs_id;
+    if (size_out) *size_out = (uint32_t)ci->size;
+    return true;
+}
+
 // A wrapper function to register an observer
 observer_id_t register_observer_ex(
     component_id_t *include_component_ids,
@@ -196,11 +233,12 @@ observer_id_t register_observer_ex(
 
     ecs_observer_desc_t desc = {0};
     desc.callback = on_observed_component_changed;
-    uint32_t entity_id_component = flecs_component_get_id_by_name("EntityId");
-    if (entity_id_component == 0) {
+    const ComponentInfo *eid_ci = get_component_info_by_name("EntityId");
+    if (!eid_ci) {
         fprintf(stderr, "Unabled to register observer (EntityId component not registered)\n");
         return 0;
     }
+    component_id_t entity_id_component = eid_ci->id;
 
     bool has_entity_id = false;
     for (uint32_t i = 0; i < num_include_components; i++) {
@@ -248,19 +286,20 @@ observer_id_t register_observer_ex(
             continue;
         }
 
-        const ComponentInfo *component_info = get_component_info(include_component_ids[i]);
-        if (component_info == NULL)
+        ecs_id_t ecs_id = 0;
+        uint32_t size = 0;
+        if (!resolve_id_info(include_component_ids[i], &ecs_id, &size))
         {
-            fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", include_component_ids[i]);
+            fprintf(stderr, "Unabled to register observer (id %u not found)\n", include_component_ids[i]);
             free(callback_ctx);
             return 0;
         }
-        desc.query.terms[out_term].id = component_info->ecs_id;
-        callback_ctx->field_ids[out_term] = component_info->ecs_id;
-        callback_ctx->field_sizes[out_term] = component_info->size;
+        desc.query.terms[out_term].id = ecs_id;
+        callback_ctx->field_ids[out_term] = ecs_id;
+        callback_ctx->field_sizes[out_term] = size;
 
         callback_ctx->column_component_ids[out_col] = include_component_ids[i];
-        callback_ctx->column_sizes[out_col] = (uint32_t)component_info->size;
+        callback_ctx->column_sizes[out_col] = size;
         callback_ctx->column_term_indices[out_col] = (int32_t)out_term;
         out_col++;
         out_term++;
@@ -277,17 +316,18 @@ observer_id_t register_observer_ex(
     }
 
     for (uint32_t i = 0; i < num_exclude_components; i++) {
-        const ComponentInfo *component_info = get_component_info(exclude_component_ids[i]);
-        if (component_info == NULL)
+        ecs_id_t ecs_id = 0;
+        uint32_t size = 0;
+        if (!resolve_id_info(exclude_component_ids[i], &ecs_id, &size))
         {
-            fprintf(stderr, "Unabled to register observer (component_id %u not found)\n", exclude_component_ids[i]);
+            fprintf(stderr, "Unabled to register observer (id %u not found)\n", exclude_component_ids[i]);
             free(callback_ctx);
             return 0;
         }
-        desc.query.terms[out_term].id = component_info->ecs_id;
+        desc.query.terms[out_term].id = ecs_id;
         desc.query.terms[out_term].oper = EcsNot;
-        callback_ctx->field_ids[out_term] = component_info->ecs_id;
-        callback_ctx->field_sizes[out_term] = component_info->size;
+        callback_ctx->field_ids[out_term] = ecs_id;
+        callback_ctx->field_sizes[out_term] = size;
         out_term++;
         if (out_term >= FLECS_TERM_COUNT_MAX) {
             fprintf(stderr, "Unabled to register observer (too many terms)\n");
@@ -296,15 +336,9 @@ observer_id_t register_observer_ex(
         }
     }
 
-    const ComponentInfo *entity_id_info = get_component_info(entity_id_component);
-    if (!entity_id_info) {
-        fprintf(stderr, "Unabled to register observer (EntityId component info missing)\n");
-        free(callback_ctx);
-        return 0;
-    }
-    desc.query.terms[out_term].id = entity_id_info->ecs_id;
-    callback_ctx->field_ids[out_term] = entity_id_info->ecs_id;
-    callback_ctx->field_sizes[out_term] = entity_id_info->size;
+    desc.query.terms[out_term].id = eid_ci->ecs_id;
+    callback_ctx->field_ids[out_term] = eid_ci->ecs_id;
+    callback_ctx->field_sizes[out_term] = eid_ci->size;
     callback_ctx->entity_id_field_index = (int32_t)out_term;
     out_term++;
 
@@ -347,14 +381,19 @@ EXPORT observer_id_t flecs_register_observer_ex(component_id_t *include_componen
 EXPORT bool flecs_unregister_observer(observer_id_t observer_id)
 {
     FLECS_WRAPPER_ASSERT_WORLD();
-    if (observer_id == 0 || observer_id >= MAX_OBSERVERS) {
+    if (!flecs_id_is_type(observer_id, FLECS_ID_OBSERVER)) {
         return false;
     }
-    ecs_entity_t ecs_id = observer_ecs_id_table[observer_id];
+    uint32_t index = flecs_id_index(observer_id);
+    if (index == 0 || index >= MAX_OBSERVERS) {
+        return false;
+    }
+    ecs_entity_t ecs_id = observer_ecs_id_table[index];
     if (!ecs_id) {
         return false;
     }
-    observer_ecs_id_table[observer_id] = 0;
+    observer_ecs_id_table[index] = 0;
     ecs_delete(world, ecs_id);
+    flecs_id_pool_free(&observer_id_pool, index);
     return true;
 }

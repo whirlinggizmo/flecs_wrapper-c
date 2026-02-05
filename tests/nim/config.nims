@@ -1,52 +1,23 @@
+# quiet the linter who thinks .nims is the same as .nim...
 when declared(task):
-    import os
-    import strformat
-    import strutils
+  import std/[sequtils, sugar, strutils, strformat, os]
 
-    let thisDir = currentSourcePath().parentDir() 
-    var basePath = joinPath(thisDir, "..", "..")
-    normalizePath(basePath)
-    #echo fmt"Base path: {basePath}"
+  switch("outdir", "out")
+  switch("path", "../..")
+  switch("hints", "off")
 
-    switch("path", "tests/nim/config.nims")
-    switch("path", "bindings/nim")
-    switch("path", basePath)
-    switch("hints", "off")
-    #switch("verbosity", "2")
+  
 
-    proc runTest(testFile: string) : int =
-        var testFile = testFile
-        if  testFile.len == 0:
-            testFile = "<unknown>"
-        let buildRootDir = joinPath(basePath, "build")
-        let buildDir = joinPath(buildRootDir, splitPath(testFile).head)
-        let testFilePath = joinPath(basePath, testFile)
-        if not fileExists(testFilePath):
-            echo testFile & ": FAILED (file not found)"
-            return -1
-        var cmd = ["nim", "c", "-r", "--outDir:" & buildDir, joinPath(basePath, testFile)].join(" ")
-        let cmdResult = gorgeEx(cmd)
-        if cmdResult.exitCode != 0:
-            echo testFile & ": FAILED: " & cmdResult.output
-        else:
-            echo testFile & ": PASSED"
-        result = cmdResult.exitCode
+  proc getFilesWithEnding(folder: string, fileEnding: string, exclude: seq[string]): seq[string] {.compileTime.} =
+    result = collect:
+      for path in walkDirRec(folder):
+        if path.extractFilename() in exclude:
+          continue
+        if path.endswith(fileEnding): path
 
-    task test, "Run Nim tests":
-        let tests = [
-            "",
-            "tests/nim/test_flecs.nim",
-            "tests/nim/test_components.nim",
-            "tests/nim/test_entities.nim",
-            "tests/nim/test_systems.nim",
-            "tests/nim/test_observers.nim",
-        ]
-        var totalFailures = 0
-        for testFile in tests:
-            if runTest(testFile) != 0:
-                totalFailures+=1
-        if totalFailures == 0:
-            echo "All tests passed!"
-        else:
-            echo fmt"{totalFailures} tests failed."
-            quit(1)
+
+  task test, "Run all Nim tests in this directory":
+    let testFiles = getFilesWithEnding(".", ".nim", @["test_common.nim"])
+    for testFile in testFiles:
+      echo fmt("Running test: {testFile}...")
+      exec fmt("nim c -r {testFile}")

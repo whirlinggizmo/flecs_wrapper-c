@@ -20,6 +20,22 @@ local function resolve_component(comp)
   error("component must be a name or component object")
 end
 
+local function resolve_entity(obj)
+  if type(obj) == "table" and obj.id then
+    return obj
+  end
+  error("object must be an entity")
+end
+
+local function resolve_pair_id(rel, obj)
+  if type(rel) == "string" and type(obj) == "string" then
+    return ecs.pair_register_by_name(rel, obj)
+  end
+  rel = resolve_component(rel)
+  obj = resolve_entity(obj)
+  return ecs.pair_register(rel.id, obj.id)
+end
+
 function M.create(name)
   local id = ecs.entity_create(name)
   if id == 0 then
@@ -76,6 +92,43 @@ end
 function Entity:mark(comp)
   comp = resolve_component(comp)
   ecs.entity_mark_component(self.id, comp.id)
+end
+
+function Entity:add_pair(rel, obj)
+  local pair_id = resolve_pair_id(rel, obj)
+  return ecs.entity_add_pair(self.id, pair_id) ~= 0
+end
+
+function Entity:remove_pair(rel, obj)
+  local pair_id = resolve_pair_id(rel, obj)
+  return ecs.entity_remove_pair(self.id, pair_id) ~= 0
+end
+
+function Entity:has_pair(rel, obj)
+  local pair_id = resolve_pair_id(rel, obj)
+  return ecs.entity_has_pair(self.id, pair_id)
+end
+
+function Entity:set_pair(rel, obj, value)
+  local pair_id = resolve_pair_id(rel, obj)
+  local ptr = value
+  if type(value) == "table" then
+    rel = resolve_component(rel)
+    if type(rel.ctype) ~= "string" then
+      error("component " .. tostring(rel.name) .. " has no ctype")
+    end
+    ptr = ecs.new(rel.ctype, value)
+  end
+  return ecs.entity_set_pair(self.id, pair_id, ptr) ~= 0
+end
+
+function Entity:get_pair(rel, obj, cast_type)
+  local pair_id = resolve_pair_id(rel, obj)
+  local ctype = cast_type
+  if ctype == nil and type(rel) == "table" and type(rel.ctype) == "string" then
+    ctype = rel.ctype .. "*"
+  end
+  return ecs.entity_get_pair(self.id, pair_id, ctype)
 end
 
 M.Entity = Entity
