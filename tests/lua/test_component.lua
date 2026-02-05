@@ -9,7 +9,7 @@ end
 add_flecs_wrapper_path()
 
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local comp = require("flecs_wrapper.bindings.lua.component_wrapper")
+local comp = require("flecs_wrapper.bindings.lua.component")
 
 local function expect(cond, msg)
   if not cond then
@@ -40,5 +40,5 @@ expect(fetched.id == Position.id, "get should return same id for LuaWrapPos")
 local existing = assert(comp.register("LuaWrapPos", "LuaWrapPos"), "register returned nil for LuaWrapPos")
 expect(existing.id == Position.id, "register should return same id for existing component")
 
-print("test_component_wrapper.lua: OK")
+print("test_component.lua: OK")
 ecs.fini()

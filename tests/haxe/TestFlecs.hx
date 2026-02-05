@@ -8,9 +8,9 @@ import cpp.UInt32;
 import utest.Test;
 import utest.Assert;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.ComponentId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EntityId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EventId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EventId;
 
 class TestFlecs extends Test {
   static var systemSeen:Int = 0;

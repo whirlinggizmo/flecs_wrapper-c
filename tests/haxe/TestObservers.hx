@@ -49,6 +49,8 @@ class TestObservers extends Test {
       Assert.equals(e.id, lastEntity);
       Assert.equals(pos.id, lastComponent);
 
+      Assert.isTrue(Observer.unregisterObserver(obsId));
+
       var obsExSeen = 0;
       var obsExId = Observer.addObserverExIds([pos.id], [tag.id], [Flecs.EcsOnAdd], function(it) {
         obsExSeen++;
@@ -69,6 +71,8 @@ class TestObservers extends Test {
 
       Flecs.progress(0);
       Assert.equals(1, obsExSeen);
+
+      Assert.isTrue(Observer.unregisterObserver(obsExId));
 
       var threw = false;
       try {

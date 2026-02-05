@@ -72,6 +72,7 @@ extern "C"
         uint32_t num_events,
         ObserverCallback callback,
         uint32_t callback_id);
+    bool flecs_unregister_observer(observer_id_t observer_id);
 
     // System registration
     typedef void (*SystemCallback)(
@@ -101,6 +102,7 @@ extern "C"
         uint32_t num_exclude_components,
         SystemCallback callback,
         uint32_t callback_id);
+    bool flecs_unregister_system(system_id_t system_id);
     // Lifecycle management
     void flecs_init(void);
     void flecs_progress(float delta_time);

@@ -1,7 +1,7 @@
 package hxcore.flecs.flecs_wrapper.bindings.haxe;
 
 import cpp.UInt32;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
 
 class Component {
   public var name:String;
@@ -15,15 +15,15 @@ class Component {
   }
 
   public inline function isTag():Bool {
-    return Flecs.componentIsTag(id);
+    return FlecsWrapper.componentIsTag(id);
   }
 
   public static inline function idByName(name:String):UInt32 {
-    return Flecs.componentId(name);
+    return FlecsWrapper.componentId(name);
   }
 
   public static function get(name:String):Component {
-    var id = Flecs.componentId(name);
+    var id = FlecsWrapper.componentId(name);
     if (id == 0) {
       return new Component("", 0, 0);
     }
@@ -39,7 +39,7 @@ class Component {
   }
 
   public static function create(name:String, size:Int):Component {
-    var id = Flecs.componentCreate(name, cast size);
+    var id = FlecsWrapper.componentCreate(name, cast size);
     if (id == 0) {
       throw 'componentCreate failed for ${name}';
     }
@@ -47,7 +47,7 @@ class Component {
   }
 
   public static function createTag(name:String):Component {
-    var id = Flecs.componentCreateTag(name);
+    var id = FlecsWrapper.componentCreateTag(name);
     if (id == 0) {
       throw 'componentCreateTag failed for ${name}';
     }

@@ -1,7 +1,7 @@
 import std/tables
 
-import ./flecs
-import ./component_wrapper
+import ./flecs_wrapper
+import ./component
 
 type
   SystemIter* = object
@@ -97,6 +97,12 @@ proc flecs_remove_system*(id: system_id_t) =
     echo "✅ Callback with id ", id, " unregistered."
   else:
     echo "⚠️ Tried to unregister missing callback id ", id
+
+proc unregister_system*(id: system_id_t): bool =
+  ensureSystemCbInit()
+  if systemCallbackMap.hasKey(id):
+    systemCallbackMap.del(id)
+  return flecs_unregister_system(id)
 
 proc flecs_add_system*(
     name: string, components: openArray[uint32], callback: SystemCallback

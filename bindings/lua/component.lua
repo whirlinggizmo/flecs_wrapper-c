@@ -1,4 +1,4 @@
-local ecs = require("flecs_wrapper.bindings.lua.flecs")
+local ecs = require("flecs_wrapper.bindings.lua.flecs_wrapper")
 local ffi = ecs.ffi
 
 local M = {}

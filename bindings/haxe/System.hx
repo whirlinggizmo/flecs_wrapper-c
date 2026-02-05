@@ -6,10 +6,10 @@ import cpp.RawPointer;
 import cpp.RawConstPointer;
 import cpp.UInt32;
 import haxe.ds.IntMap;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.ComponentId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EntityId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.SystemId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.SystemId;
 
 class SystemIter {
   public var entityIds:Pointer<EntityId>;
@@ -156,6 +156,11 @@ class System {
     }
   }
 
+  public static function unregisterSystem(id:SystemId):Bool {
+    removeSystem(id);
+    return FlecsWrapper.unregisterSystem(id);
+  }
+
   static function systemTrampoline(
     entityIds:RawConstPointer<EntityId>,
     entityCount:UInt32,
@@ -201,7 +206,7 @@ class System {
     var result = new Array<ComponentId>();
     if (names != null) {
       for (name in names) {
-        var id = Flecs.componentId(name);
+        var id = FlecsWrapper.componentId(name);
         if (id == 0) {
           throw 'Unknown component name: ${name}';
         }
@@ -240,7 +245,7 @@ class System {
     });
 
     var compPtr = Pointer.ofArray(componentIds);
-    return Flecs.registerSystem(
+    return FlecsWrapper.registerSystem(
       name,
       compPtr.raw,
       cast componentIds.length,
@@ -286,7 +291,7 @@ class System {
       ));
     });
 
-    return Flecs.registerSystem(
+    return FlecsWrapper.registerSystem(
       name,
       null,
       0,
@@ -331,7 +336,7 @@ class System {
     var includePtr = Pointer.ofArray(includeIds);
     var excludePtr = (excludeIds != null && excludeIds.length > 0) ? Pointer.ofArray(excludeIds) : null;
 
-    return Flecs.registerSystemEx(
+    return FlecsWrapper.registerSystemEx(
       name,
       includePtr.raw,
       cast includeIds.length,

@@ -7,6 +7,7 @@ class RunTests {
   static function main() {
     var runner = new Runner();
     runner.addCase(new TestFlecs());
+    runner.addCase(new TestFlecsWrapper());
     runner.addCase(new TestComponents());
     runner.addCase(new TestEntities());
     runner.addCase(new TestSystems());

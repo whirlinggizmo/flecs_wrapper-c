@@ -300,3 +300,18 @@ EXPORT system_id_t flecs_register_system_ex(
     printf("Registered iterator system '%s' with id: %u\n", name, sys_id);
     return sys_id;
 }
+
+EXPORT bool flecs_unregister_system(system_id_t system_id)
+{
+    FLECS_WRAPPER_ASSERT_WORLD();
+    if (system_id == 0 || system_id >= MAX_SYSTEMS) {
+        return false;
+    }
+    ecs_entity_t ecs_id = system_ecs_id_table[system_id];
+    if (!ecs_id) {
+        return false;
+    }
+    system_ecs_id_table[system_id] = 0;
+    ecs_delete(world, ecs_id);
+    return true;
+}

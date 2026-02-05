@@ -9,9 +9,9 @@ end
 add_flecs_wrapper_path()
 
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local comp = require("flecs_wrapper.bindings.lua.component_wrapper")
-local ent = require("flecs_wrapper.bindings.lua.entity_wrapper")
-local sys = require("flecs_wrapper.bindings.lua.system_wrapper")
+local comp = require("flecs_wrapper.bindings.lua.component")
+local ent = require("flecs_wrapper.bindings.lua.entity")
+local sys = require("flecs_wrapper.bindings.lua.system")
 
 local function expect(cond, msg)
   if not cond then
@@ -45,7 +45,7 @@ e2:set(Position, {x = 1, y = 0})
 e2:set(Velocity, {x = 3, y = 0})
 
 local seen = {count = 0}
-sys.register("LuaSysMove", {Position, Velocity}, function(it)
+local sys_id = sys.register("LuaSysMove", {Position, Velocity}, function(it)
   for i = 1, it.count do
     local pos = it:col(Position, i)
     local vel = it:col(Velocity, i)
@@ -53,6 +53,7 @@ sys.register("LuaSysMove", {Position, Velocity}, function(it)
     seen.count = seen.count + 1
   end
 end)
+expect(sys_id ~= 0, "system id was 0")
 
 ecs.progress(0.5)
 
@@ -63,5 +64,7 @@ expect(nearly_equal(p1[0].x, 1.0), "unexpected position for e1")
 expect(nearly_equal(p2[0].x, 2.5), "unexpected position for e2")
 expect(seen.count >= 2, "system did not process entities")
 
-print("test_system_wrapper.lua: OK")
+expect(sys.unregister(sys_id), "failed to unregister system")
+
+print("test_system.lua: OK")
 ecs.fini()

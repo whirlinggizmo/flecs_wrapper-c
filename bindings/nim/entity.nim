@@ -1,5 +1,5 @@
-import ./flecs
-import ./component_wrapper
+import ./flecs_wrapper
+import ./component
 
 type
   Entity* = object

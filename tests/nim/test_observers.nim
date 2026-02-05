@@ -1,6 +1,6 @@
 import std/unittest
 
-import bindings/nim/init
+import bindings/nim/flecs
 import test_common
 
 type
@@ -33,6 +33,8 @@ suite "observers":
       check lastEntity == e.id
       check lastComponent == posId
 
+      check unregister_observer(obsId)
+
       var obsExSeen = 0
       let obsExId = addObserverEx([posId], [tagId], [ecsOnAdd], proc(it: ObserverIter) {.gcsafe, closure.} =
         inc obsExSeen
@@ -47,6 +49,8 @@ suite "observers":
 
       flecs_progress(0)
       check obsExSeen == 1
+
+      check unregister_observer(obsExId)
 
       expect CatchableError:
         discard addObserver([posId], [0'u32], proc(it: ObserverIter) {.gcsafe, closure.} = discard)

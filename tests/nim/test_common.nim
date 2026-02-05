@@ -1,4 +1,4 @@
-import bindings/nim/init
+import bindings/nim/flecs
 
 template withFlecs*(body: untyped) =
   flecs_init()

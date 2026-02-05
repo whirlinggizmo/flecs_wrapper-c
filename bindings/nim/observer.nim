@@ -1,7 +1,7 @@
 import std/tables
 
-import ./flecs
-import ./component_wrapper
+import ./flecs_wrapper
+import ./component
 
 type
   ObserverIter* = object
@@ -101,6 +101,12 @@ proc flecs_remove_observer*(id: observer_id_t) =
     echo "✅ Callback with id ", id, " unregistered."
   else:
     echo "⚠️ Tried to unregister missing callback id ", id
+
+proc unregister_observer*(id: observer_id_t): bool =
+  ensureObserverCbInit()
+  if observerCallbackMap.hasKey(id):
+    observerCallbackMap.del(id)
+  return flecs_unregister_observer(id)
 
 proc flecs_add_observer*(
     components: openArray[uint32], events: openArray[uint32], callback: ObserverCallback

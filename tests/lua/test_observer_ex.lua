@@ -9,9 +9,9 @@ end
 add_flecs_wrapper_path()
 
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local comp = require("flecs_wrapper.bindings.lua.component_wrapper")
-local ent = require("flecs_wrapper.bindings.lua.entity_wrapper")
-local obs = require("flecs_wrapper.bindings.lua.observer_wrapper")
+local comp = require("flecs_wrapper.bindings.lua.component")
+local ent = require("flecs_wrapper.bindings.lua.entity")
+local obs = require("flecs_wrapper.bindings.lua.observer")
 
 local function expect(cond, msg)
   if not cond then
@@ -30,9 +30,10 @@ local ExcludeTag = comp.tag("LuaObsExTag")
 
 local seen = {add = 0}
 
-obs.register_ex({Position}, {ExcludeTag}, {ecs.events.ON_ADD}, function(it)
+local obs_id = obs.register_ex({Position}, {ExcludeTag}, {ecs.events.ON_ADD}, function(it)
   seen.add = seen.add + 1
 end)
+expect(obs_id ~= 0, "observer id was 0")
 
 local e1 = ent.create("ObsExEntity1")
 e1:set(Position, {x = 1.0, y = 2.0})
@@ -45,5 +46,7 @@ ecs.progress(0)
 
 expect(seen.add == 1, "observer should ignore excluded entities")
 
-print("test_observer_wrapper_ex.lua: OK (add=" .. tostring(seen.add) .. ")")
+expect(obs.unregister(obs_id), "failed to unregister observer")
+
+print("test_observer_ex.lua: OK (add=" .. tostring(seen.add) .. ")")
 ecs.fini()

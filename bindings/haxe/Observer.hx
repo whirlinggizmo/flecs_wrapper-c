@@ -5,11 +5,11 @@ import cpp.RawPointer;
 import cpp.RawConstPointer;
 import cpp.UInt32;
 import haxe.ds.IntMap;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.ComponentId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EntityId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EventId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.ObserverId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EventId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ObserverId;
 
 class ObserverIter {
   public var entityIds:Pointer<EntityId>;
@@ -156,6 +156,11 @@ class Observer {
     }
   }
 
+  public static function unregisterObserver(id:ObserverId):Bool {
+    removeObserver(id);
+    return FlecsWrapper.unregisterObserver(id);
+  }
+
   static function observerTrampoline(
     entityIds:RawConstPointer<EntityId>,
     entityCount:UInt32,
@@ -202,7 +207,7 @@ class Observer {
     var result = new Array<ComponentId>();
     if (names != null) {
       for (name in names) {
-        var id = Flecs.componentId(name);
+        var id = FlecsWrapper.componentId(name);
         if (id == 0) {
           throw 'Unknown component name: ${name}';
         }
@@ -261,7 +266,7 @@ class Observer {
     var compPtr = Pointer.ofArray(componentIds);
     var eventPtr = Pointer.ofArray(eventIds);
 
-    return Flecs.registerObserver(
+    return FlecsWrapper.registerObserver(
       compPtr.raw,
       cast componentIds.length,
       eventPtr.raw,
@@ -326,7 +331,7 @@ class Observer {
     var excludePtr = (excludeIds != null && excludeIds.length > 0) ? Pointer.ofArray(excludeIds) : null;
     var eventPtr = Pointer.ofArray(events);
 
-    return Flecs.registerObserverEx(
+    return FlecsWrapper.registerObserverEx(
       includePtr.raw,
       cast includeIds.length,
       excludePtr == null ? null : excludePtr.raw,

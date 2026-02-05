@@ -9,8 +9,8 @@ end
 add_flecs_wrapper_path()
 
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local comp = require("flecs_wrapper.bindings.lua.component_wrapper")
-local ent = require("flecs_wrapper.bindings.lua.entity_wrapper")
+local comp = require("flecs_wrapper.bindings.lua.component")
+local ent = require("flecs_wrapper.bindings.lua.entity")
 
 local function expect(cond, msg)
   if not cond then
@@ -49,5 +49,5 @@ e:mark(Position)
 expect(e:remove("LuaEntTag") == true, "entity remove Tag failed")
 expect(e:has("LuaEntTag") == false, "entity should not have Tag after remove")
 
-print("test_entity_wrapper.lua: OK")
+print("test_entity.lua: OK")
 ecs.fini()

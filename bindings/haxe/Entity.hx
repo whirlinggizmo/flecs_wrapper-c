@@ -2,9 +2,9 @@ package hxcore.flecs.flecs_wrapper.bindings.haxe;
 
 import cpp.Pointer;
 import cpp.UInt32;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.ComponentId;
-import hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.EntityId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
+import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
 
 class Entity {
   public var id:EntityId;
@@ -14,7 +14,7 @@ class Entity {
   }
 
   public static function create(name:String):Entity {
-    var id = Flecs.entityCreate(name);
+    var id = FlecsWrapper.entityCreate(name);
     if (id == 0) {
       throw 'entityCreate failed for ${name}';
     }
@@ -26,54 +26,54 @@ class Entity {
   }
 
   public inline function destroy():Bool {
-    return Flecs.entityDestroy(id);
+    return FlecsWrapper.entityDestroy(id);
   }
 
   public function add(comp:Dynamic):Bool {
     if (Std.isOfType(comp, Component)) {
-      return Flecs.entityAddComponent(id, cast(comp, Component).id);
+      return FlecsWrapper.entityAddComponent(id, cast(comp, Component).id);
     }
     if (Std.isOfType(comp, String)) {
-      return Flecs.entityAddComponentByName(id, cast comp);
+      return FlecsWrapper.entityAddComponentByName(id, cast comp);
     }
-    return Flecs.entityAddComponent(id, cast comp);
+    return FlecsWrapper.entityAddComponent(id, cast comp);
   }
 
   public function remove(comp:Dynamic):Bool {
     if (Std.isOfType(comp, Component)) {
-      return Flecs.entityRemoveComponent(id, cast(comp, Component).id);
+      return FlecsWrapper.entityRemoveComponent(id, cast(comp, Component).id);
     }
     if (Std.isOfType(comp, String)) {
-      return Flecs.entityRemoveComponentByName(id, cast comp);
+      return FlecsWrapper.entityRemoveComponentByName(id, cast comp);
     }
-    return Flecs.entityRemoveComponent(id, cast comp);
+    return FlecsWrapper.entityRemoveComponent(id, cast comp);
   }
 
   public function has(comp:Dynamic):Bool {
     if (Std.isOfType(comp, Component)) {
-      return Flecs.entityHasComponent(id, cast(comp, Component).id);
+      return FlecsWrapper.entityHasComponent(id, cast(comp, Component).id);
     }
     if (Std.isOfType(comp, String)) {
-      return Flecs.entityHasComponentByName(id, cast comp);
+      return FlecsWrapper.entityHasComponentByName(id, cast comp);
     }
-    return Flecs.entityHasComponent(id, cast comp);
+    return FlecsWrapper.entityHasComponent(id, cast comp);
   }
 
   @:generic
   public function set<T>(comp:Component, value:T):Bool {
     var tmp = value;
     var ptr = Pointer.addressOf(tmp);
-    return Flecs.entitySetComponent(id, comp.id, cast ptr);
+    return FlecsWrapper.entitySetComponent(id, comp.id, cast ptr);
   }
 
   @:generic
   public function setPtr<T>(comp:Component, value:Pointer<T>):Bool {
-    return Flecs.entitySetComponent(id, comp.id, cast value);
+    return FlecsWrapper.entitySetComponent(id, comp.id, cast value);
   }
 
   @:generic
   public function getPtr<T>(comp:Component):Pointer<T> {
-    return cast Flecs.entityGetComponent(id, comp.id);
+    return cast FlecsWrapper.entityGetComponent(id, comp.id);
   }
 
   @:generic
@@ -87,17 +87,17 @@ class Entity {
 
   public function mark(comp:Dynamic):Void {
     if (Std.isOfType(comp, Component)) {
-      Flecs.entityMarkComponent(id, cast(comp, Component).id);
+      FlecsWrapper.entityMarkComponent(id, cast(comp, Component).id);
       return;
     }
     if (Std.isOfType(comp, String)) {
-      var compId:ComponentId = Flecs.componentId(cast comp);
+      var compId:ComponentId = FlecsWrapper.componentId(cast comp);
       if (compId == 0) {
         throw 'Unknown component name: ${comp}';
       }
-      Flecs.entityMarkComponent(id, compId);
+      FlecsWrapper.entityMarkComponent(id, compId);
       return;
     }
-    Flecs.entityMarkComponent(id, cast comp);
+    FlecsWrapper.entityMarkComponent(id, cast comp);
   }
 }

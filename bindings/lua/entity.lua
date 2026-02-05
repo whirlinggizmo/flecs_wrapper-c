@@ -1,5 +1,5 @@
-local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local component = require("flecs_wrapper.bindings.lua.component_wrapper")
+local ecs = require("flecs_wrapper.bindings.lua.flecs_wrapper")
+local component = require("flecs_wrapper.bindings.lua.component")
 
 local M = {}
 

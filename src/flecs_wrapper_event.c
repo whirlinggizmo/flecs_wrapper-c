@@ -343,3 +343,18 @@ EXPORT observer_id_t flecs_register_observer_ex(component_id_t *include_componen
 {
     return register_observer_ex(include_component_ids, num_include_components, exclude_component_ids, num_exclude_components, event_ids, num_events, callback, callback_id);
 }
+
+EXPORT bool flecs_unregister_observer(observer_id_t observer_id)
+{
+    FLECS_WRAPPER_ASSERT_WORLD();
+    if (observer_id == 0 || observer_id >= MAX_OBSERVERS) {
+        return false;
+    }
+    ecs_entity_t ecs_id = observer_ecs_id_table[observer_id];
+    if (!ecs_id) {
+        return false;
+    }
+    observer_ecs_id_table[observer_id] = 0;
+    ecs_delete(world, ecs_id);
+    return true;
+}

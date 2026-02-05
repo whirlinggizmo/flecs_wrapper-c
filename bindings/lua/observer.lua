@@ -1,11 +1,11 @@
-local ecs = require("flecs_wrapper.bindings.lua.flecs")
-local component = require("flecs_wrapper.bindings.lua.component_wrapper")
+local ecs = require("flecs_wrapper.bindings.lua.flecs_wrapper")
+local component = require("flecs_wrapper.bindings.lua.component")
 local ffi = ecs.ffi
 
 local M = {}
 
-local Iter = {}
-Iter.__index = Iter
+local Observer = {}
+Observer.__index = Observer
 
 local function resolve_component(comp)
   if type(comp) == "string" then
@@ -40,11 +40,11 @@ local function normalize_component_names(list)
   return names
 end
 
-function Iter:entity(i)
+function Observer:entity(i)
   return tonumber(self.entity_ids[i - 1])
 end
 
-function Iter:col_index(comp)
+function Observer:col_index(comp)
   comp = resolve_component(comp)
   local cid = comp.id
   for i = 0, self.col_count - 1 do
@@ -55,7 +55,7 @@ function Iter:col_index(comp)
   return nil
 end
 
-function Iter:col_ptr(comp)
+function Observer:col_ptr(comp)
   comp = resolve_component(comp)
   local idx = self:col_index(comp)
   if idx == nil then
@@ -67,7 +67,7 @@ function Iter:col_ptr(comp)
   return self.columns[idx]
 end
 
-function Iter:col(comp, i)
+function Observer:col(comp, i)
   local ptr = self:col_ptr(comp)
   if ptr == nil then
     return nil
@@ -75,7 +75,7 @@ function Iter:col(comp, i)
   return ptr[i - 1]
 end
 
-local function make_iter(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, dt, cb_id)
+local function make_observer(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id)
   return setmetatable({
     entity_ids = entity_ids,
     count = tonumber(entity_count),
@@ -83,28 +83,33 @@ local function make_iter(entity_ids, entity_count, columns, col_ids, col_sizes, 
     col_ids = col_ids,
     col_sizes = col_sizes,
     col_count = tonumber(col_count),
-    dt = tonumber(dt),
+    event_id = tonumber(event_id),
+    component_id = tonumber(component_id),
     cb_id = tonumber(cb_id),
-  }, Iter)
+  }, Observer)
 end
 
-function M.register(name, components, fn, callback_id)
+function M.register(components, events, fn, callback_id)
   local names = normalize_component_names(components)
-  local function wrapper(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, dt, cb_id)
-    return fn(make_iter(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, dt, cb_id))
+  local function wrapper(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id)
+    return fn(make_observer(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id))
   end
-  return ecs.register_system(name, names, wrapper, callback_id)
+  return ecs.register_observer(names, events, wrapper, callback_id)
 end
 
-function M.register_ex(name, include, exclude, fn, callback_id)
-  local include_names = normalize_component_names(include)
-  local exclude_names = normalize_component_names(exclude or {})
-  local function wrapper(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, dt, cb_id)
-    return fn(make_iter(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, dt, cb_id))
+function M.register_ex(include_components, exclude_components, events, fn, callback_id)
+  local include_names = normalize_component_names(include_components)
+  local exclude_names = normalize_component_names(exclude_components or {})
+  local function wrapper(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id)
+    return fn(make_observer(entity_ids, entity_count, columns, col_ids, col_sizes, col_count, event_id, component_id, cb_id))
   end
-  return ecs.register_system_ex(name, include_names, exclude_names, wrapper, callback_id)
+  return ecs.register_observer_ex(include_names, exclude_names, events, wrapper, callback_id)
 end
 
-M.Iter = Iter
+function M.unregister(observer_id)
+  return ecs.unregister_observer(observer_id)
+end
+
+M.Observer = Observer
 
 return M

@@ -61,7 +61,7 @@ do
   ecs.entity_set_component(case.e2, case.pos_id, ecs.new("Vec2", {x = 0, y = 0}))
   ecs.entity_set_component(case.e2, case.vel_id, ecs.new("Vec2", {x = 1, y = 0}))
 
-  ecs.register_system_ex("MoveSystemExLuaA", {"LuaPosA", "LuaVelA"}, {"LuaExclA"}, function(entity_ids, count, columns, _, _, _, dt, _)
+  case.sys_id = ecs.register_system_ex("MoveSystemExLuaA", {"LuaPosA", "LuaVelA"}, {"LuaExclA"}, function(entity_ids, count, columns, _, _, _, dt, _)
     local pos = ffi.cast("Vec2*", columns[0])
     local vel = ffi.cast("Vec2*", columns[1])
     for i = 0, count - 1 do
@@ -70,6 +70,7 @@ do
       case.processed[entity_ids[i]] = (case.processed[entity_ids[i]] or 0) + 1
     end
   end)
+  expect(case.sys_id ~= 0, case.name .. ": system id was 0")
 end
 
 -- Case 2: exclude empty.
@@ -86,7 +87,7 @@ do
   ecs.entity_set_component(case.e2, case.pos_id, ecs.new("Vec2", {x = 0, y = 0}))
   ecs.entity_set_component(case.e2, case.vel_id, ecs.new("Vec2", {x = 1, y = 0}))
 
-  ecs.register_system_ex("MoveSystemExLuaB", {"LuaPosB", "LuaVelB"}, {}, function(entity_ids, count, columns, _, _, _, dt, _)
+  case.sys_id = ecs.register_system_ex("MoveSystemExLuaB", {"LuaPosB", "LuaVelB"}, {}, function(entity_ids, count, columns, _, _, _, dt, _)
     local pos = ffi.cast("Vec2*", columns[0])
     local vel = ffi.cast("Vec2*", columns[1])
     for i = 0, count - 1 do
@@ -95,6 +96,7 @@ do
       case.processed[entity_ids[i]] = (case.processed[entity_ids[i]] or 0) + 1
     end
   end)
+  expect(case.sys_id ~= 0, case.name .. ": system id was 0")
 end
 
 -- Case 3: exclude missing.
@@ -112,7 +114,7 @@ do
   ecs.entity_set_component(case.e2, case.pos_id, ecs.new("Vec2", {x = 0, y = 0}))
   ecs.entity_set_component(case.e2, case.vel_id, ecs.new("Vec2", {x = 1, y = 0}))
 
-  ecs.register_system_ex("MoveSystemExLuaC", {"LuaPosC", "LuaVelC"}, {"LuaExclC"}, function(entity_ids, count, columns, _, _, _, dt, _)
+  case.sys_id = ecs.register_system_ex("MoveSystemExLuaC", {"LuaPosC", "LuaVelC"}, {"LuaExclC"}, function(entity_ids, count, columns, _, _, _, dt, _)
     local pos = ffi.cast("Vec2*", columns[0])
     local vel = ffi.cast("Vec2*", columns[1])
     for i = 0, count - 1 do
@@ -121,6 +123,7 @@ do
       case.processed[entity_ids[i]] = (case.processed[entity_ids[i]] or 0) + 1
     end
   end)
+  expect(case.sys_id ~= 0, case.name .. ": system id was 0")
 end
 
 -- Case 4: multiple excludes.
@@ -141,7 +144,7 @@ do
   ecs.entity_set_component(case.e2, case.pos_id, ecs.new("Vec2", {x = 0, y = 0}))
   ecs.entity_set_component(case.e2, case.vel_id, ecs.new("Vec2", {x = 1, y = 0}))
 
-  ecs.register_system_ex("MoveSystemExLuaD", {"LuaPosD", "LuaVelD"}, {"LuaExclD1", "LuaExclD2"}, function(entity_ids, count, columns, _, _, _, dt, _)
+  case.sys_id = ecs.register_system_ex("MoveSystemExLuaD", {"LuaPosD", "LuaVelD"}, {"LuaExclD1", "LuaExclD2"}, function(entity_ids, count, columns, _, _, _, dt, _)
     local pos = ffi.cast("Vec2*", columns[0])
     local vel = ffi.cast("Vec2*", columns[1])
     for i = 0, count - 1 do
@@ -150,6 +153,7 @@ do
       case.processed[entity_ids[i]] = (case.processed[entity_ids[i]] or 0) + 1
     end
   end)
+  expect(case.sys_id ~= 0, case.name .. ": system id was 0")
 end
 
 ecs.progress(1.0)
@@ -173,6 +177,10 @@ for _, case in ipairs(cases) do
     expect(pos2[0].x == 0 and pos2[0].y == 0, case.name .. ": expected e2 not moved")
     expect((case.processed[case.e2] or 0) == 0, case.name .. ": expected e2 not processed")
   end
+end
+
+for _, case in ipairs(cases) do
+  expect(ecs.unregister_system(case.sys_id), case.name .. ": failed to unregister system")
 end
 
 print(string.format("test_system_ex.lua: OK (%d cases)", #cases))

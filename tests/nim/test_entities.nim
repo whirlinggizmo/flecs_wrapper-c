@@ -1,7 +1,7 @@
 import std/math
 import std/unittest
 
-import bindings/nim/init
+import bindings/nim/flecs
 import test_common
 
 type

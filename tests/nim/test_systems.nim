@@ -1,7 +1,7 @@
 import std/math
 import std/unittest
 
-import bindings/nim/init
+import bindings/nim/flecs
 import test_common
 
 type
@@ -39,3 +39,5 @@ suite "systems":
       check p2 != nil
       check abs(p2[].x - 1.0) < 1e-6
       check sysSeen >= 1
+
+      check unregister_system(sysId)

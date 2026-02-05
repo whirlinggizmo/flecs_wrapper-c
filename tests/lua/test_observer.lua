@@ -8,12 +8,10 @@ end
 
 add_flecs_wrapper_path()
 
-local ffi = require("ffi")
 local ecs = require("flecs_wrapper.bindings.lua.flecs")
-
-ffi.cdef[[
-typedef struct Vec2 { float x; float y; } Vec2;
-]]
+local comp = require("flecs_wrapper.bindings.lua.component")
+local ent = require("flecs_wrapper.bindings.lua.entity")
+local obs = require("flecs_wrapper.bindings.lua.observer")
 
 local function expect(cond, msg)
   if not cond then
@@ -21,60 +19,110 @@ local function expect(cond, msg)
   end
 end
 
+local function expect_error(fn, msg)
+  local ok, _ = pcall(fn)
+  expect(not ok, msg)
+end
+
 ecs.init()
 ecs.set_threads(1)
 
-local vec_id = ecs.component_create("LuaObsVec2", ffi.sizeof("Vec2"))
-expect(vec_id ~= 0, "component_create failed")
+local Position = assert(comp.create("LuaObsPos", {
+  {"x", comp.types.float},
+  {"y", comp.types.float},
+}), "component create returned nil for LuaObsPos")
 
-local e1 = ecs.entity_create("ObserverEntity")
-expect(e1 ~= 0, "entity_create failed")
-
-local callback_id = 123
 local seen = {
   add = 0,
-  set = 0,
-  last = nil,
-  last_event = nil,
-  last_component = nil,
-  last_entity = nil,
+  last_entity = 0,
+  last_component = 0,
 }
 
-ecs.register_observer({"LuaObsVec2"}, {ecs.events.ON_ADD, ecs.events.ON_SET}, function(entity_ids, count, columns, column_component_ids, column_sizes, column_count, event_id, component_id, cb_id)
-  expect(cb_id == callback_id, "callback_id mismatch")
-  expect(count == 1, "expected exactly 1 entity")
-  expect(column_count == 1, "expected exactly 1 column")
-  expect(tonumber(column_component_ids[0]) == vec_id, "column_component_id mismatch")
-  expect(tonumber(column_sizes[0]) == ffi.sizeof("Vec2"), "column_sizes mismatch")
+local obs_id = obs.register({Position}, {ecs.events.ON_ADD}, function(it)
+  seen.add = seen.add + 1
+  seen.last_entity = it:entity(1)
+  seen.last_component = it.component_id
+end)
+expect(obs_id ~= 0, "observer id was 0")
 
-  seen.last_event = tonumber(event_id)
-  seen.last_component = tonumber(component_id)
-  seen.last_entity = tonumber(entity_ids[0])
+local e = ent.create("ObsEntity")
+e:set(Position, {x = 1.0, y = 2.0})
 
-  local v = ffi.cast("Vec2*", columns[0])
-  expect(v ~= nil, "columns[0] is nil")
-  seen.last = {x = v[0].x, y = v[0].y}
-
-  if seen.last_event == ecs.events.ON_ADD then
-    seen.add = seen.add + 1
-  elseif seen.last_event == ecs.events.ON_SET then
-    seen.set = seen.set + 1
-  end
-end, callback_id)
-
--- First set: should at least emit ON_SET; may also emit ON_ADD depending on Flecs behavior.
-ecs.entity_set_component(e1, vec_id, ecs.new("Vec2", {x = 1, y = 2}))
-
--- Second set: should emit ON_SET.
-ecs.entity_set_component(e1, vec_id, ecs.new("Vec2", {x = 3, y = 4}))
-
--- Ensure any deferred observer work gets processed (if applicable).
 ecs.progress(0)
 
-expect(seen.last_component == vec_id, "observer reported wrong component_id")
-expect(seen.last_entity == e1, "observer reported wrong entity_id")
-expect(seen.set >= 1, "expected ON_SET observer to fire at least once")
-expect(seen.last ~= nil and seen.last.x == 3 and seen.last.y == 4, "expected last observed value to be 3,4")
+expect(seen.add >= 1, "observer did not fire for ON_ADD")
+expect(seen.last_entity == e.id, "observer saw wrong entity")
+expect(seen.last_component == Position.id, "observer saw wrong component")
 
-print(string.format("test_observer.lua: OK (set=%d add=%d)", seen.set, seen.add))
+expect(obs.unregister(obs_id), "failed to unregister observer")
+
+local PositionMore = comp.create("LuaObsMorePos", {
+  {"x", comp.types.float},
+  {"y", comp.types.float},
+})
+local VelocityMore = comp.create("LuaObsMoreVel", {
+  {"x", comp.types.float},
+  {"y", comp.types.float},
+})
+
+local seen_more = {
+  set = 0,
+  remove = 0,
+  last_entity = 0,
+}
+
+local obs_set_id = obs.register({PositionMore}, {ecs.events.ON_SET}, function(it)
+  seen_more.set = seen_more.set + 1
+  seen_more.last_entity = it:entity(1)
+end)
+expect(obs_set_id ~= 0, "observer ON_SET id was 0")
+
+local obs_remove_id = obs.register({PositionMore}, {ecs.events.ON_REMOVE}, function(it)
+  seen_more.remove = seen_more.remove + 1
+end)
+expect(obs_remove_id ~= 0, "observer ON_REMOVE id was 0")
+
+local multi_seen = {count = 0, pos_x = 0, vel_x = 0}
+local obs_multi_id = obs.register({PositionMore, VelocityMore}, {ecs.events.ON_SET}, function(it)
+  multi_seen.count = multi_seen.count + 1
+  local pos = it:col(PositionMore, 1)
+  local vel = it:col(VelocityMore, 1)
+  if pos and vel then
+    multi_seen.pos_x = pos.x
+    multi_seen.vel_x = vel.x
+  end
+end)
+expect(obs_multi_id ~= 0, "observer multi id was 0")
+
+local e2 = ent.create("ObsMoreEntity")
+e2:set(VelocityMore, {x = 2.0, y = 0.0})
+e2:set(PositionMore, {x = 1.0, y = 3.0})
+e2:set(PositionMore, {x = 4.0, y = 5.0})
+
+ecs.progress(0)
+
+expect(seen_more.set >= 2, "expected ON_SET observer to fire")
+expect(seen_more.last_entity == e2.id, "observer reported wrong entity id")
+expect(multi_seen.count >= 1, "multi-component observer did not fire")
+expect(multi_seen.pos_x == 4.0, "multi-component observer saw wrong Position.x")
+expect(multi_seen.vel_x == 2.0, "multi-component observer saw wrong Velocity.x")
+
+e2:remove(PositionMore)
+ecs.progress(0)
+
+expect(seen_more.remove >= 1, "expected ON_REMOVE observer to fire")
+
+expect_error(function()
+  obs.register({"NoSuchComponent"}, {ecs.events.ON_ADD}, function() end)
+end, "expected error for unknown component")
+
+expect_error(function()
+  obs.register({PositionMore}, {99}, function() end)
+end, "expected error for invalid event id")
+
+expect(obs.unregister(obs_set_id), "failed to unregister ON_SET observer")
+expect(obs.unregister(obs_remove_id), "failed to unregister ON_REMOVE observer")
+expect(obs.unregister(obs_multi_id), "failed to unregister multi observer")
+
+print("test_observer.lua: OK (add=" .. tostring(seen.add) .. ", set=" .. tostring(seen_more.set) .. ", remove=" .. tostring(seen_more.remove) .. ")")
 ecs.fini()

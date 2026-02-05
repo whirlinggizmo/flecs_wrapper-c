@@ -67,6 +67,8 @@ class TestSystems extends Test {
       var p2 = p2Ptr.ref;
       Assert.isTrue(Math.abs(p2.x - 1.0) < 1e-6);
       Assert.isTrue(sysSeen >= 1);
+
+      Assert.isTrue(System.unregisterSystem(sysId));
     });
   }
 }

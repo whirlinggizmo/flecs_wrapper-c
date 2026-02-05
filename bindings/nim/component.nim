@@ -1,6 +1,6 @@
 import std/macros
 
-import ./flecs
+import ./flecs_wrapper
 
 type
   Component* = object
