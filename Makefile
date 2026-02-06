@@ -9,15 +9,16 @@ WRAPPER_INC_DIR     = ./include/
 BUILD_DIR           = ./build
 WRAPPER_BUILD_DIR   = $(BUILD_DIR)/wrapper
 BIN_DIR             = ./lib
+TEST_BIN_DIR        = ./out
 TEST_DIR            = ./tests
 
 # Output
 TARGET_DYNAMIC      = $(BIN_DIR)/libflecs_wrapper.so
 TARGET_STATIC       = $(BIN_DIR)/libflecs_wrapper.a
-TEST_SYSTEM_EX      = $(BIN_DIR)/test_system_ex
-TEST_OBSERVER_EX    = $(BIN_DIR)/test_observer_ex
-TEST_OBSERVER_IDS   = $(BIN_DIR)/test_observer_ids
-TEST_SYSTEM_IDS     = $(BIN_DIR)/test_system_ids
+TEST_SYSTEM_EX      = $(TEST_BIN_DIR)/test_system_ex
+TEST_OBSERVER_EX    = $(TEST_BIN_DIR)/test_observer_ex
+TEST_OBSERVER_IDS   = $(TEST_BIN_DIR)/test_observer_ids
+TEST_SYSTEM_IDS     = $(TEST_BIN_DIR)/test_system_ids
 TEST_NATIVE_DIR     = $(TEST_DIR)/native
 
 # Source files
@@ -49,8 +50,7 @@ $(TARGET_STATIC): $(WRAPPER_SRC)
 # Clean build artifacts
 clean:
 	rm -f $(TARGET_DYNAMIC) $(TARGET_STATIC)
-	rm -f $(TEST_SYSTEM_EX)
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(TEST_BIN_DIR)
 
 # Print build variables (for debugging)
 print-srcs:
@@ -58,6 +58,7 @@ print-srcs:
 	@echo "TARGET_STATIC: $(TARGET_STATIC)"
 	@echo "BUILD_DIR: $(BUILD_DIR)"
 	@echo "BIN_DIR: $(BIN_DIR)"
+	@echo "TEST_BIN_DIR: $(TEST_BIN_DIR)"
 	@echo "WRAPPER_SRC_DIR: $(WRAPPER_SRC_DIR)"
 	@echo "WRAPPER_INC_DIR: $(WRAPPER_INC_DIR)"
 	@echo "WRAPPER_SRC: $(WRAPPER_SRC)"
@@ -69,13 +70,17 @@ test: $(TEST_SYSTEM_EX) $(TEST_OBSERVER_EX) $(TEST_OBSERVER_IDS) $(TEST_SYSTEM_I
 	$(TEST_SYSTEM_IDS)
 
 $(TEST_SYSTEM_EX): $(TEST_NATIVE_DIR)/test_system_ex.c $(TARGET_DYNAMIC)
+	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) -I$(WRAPPER_INC_DIR) $< -L$(BIN_DIR) -lflecs_wrapper -lm -Wl,-rpath,$(BIN_DIR) -o $@
 
 $(TEST_OBSERVER_EX): $(TEST_NATIVE_DIR)/test_observer_ex.c $(TARGET_DYNAMIC)
+	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) -I$(WRAPPER_INC_DIR) $< -L$(BIN_DIR) -lflecs_wrapper -lm -Wl,-rpath,$(BIN_DIR) -o $@
 
 $(TEST_OBSERVER_IDS): $(TEST_NATIVE_DIR)/test_observer_ids.c $(TARGET_DYNAMIC)
+	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) -I$(WRAPPER_INC_DIR) $< -L$(BIN_DIR) -lflecs_wrapper -lm -Wl,-rpath,$(BIN_DIR) -o $@
 
 $(TEST_SYSTEM_IDS): $(TEST_NATIVE_DIR)/test_system_ids.c $(TARGET_DYNAMIC)
+	@mkdir -p $(TEST_BIN_DIR)
 	$(CC) -I$(WRAPPER_INC_DIR) $< -L$(BIN_DIR) -lflecs_wrapper -lm -Wl,-rpath,$(BIN_DIR) -o $@

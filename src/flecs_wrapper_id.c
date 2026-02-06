@@ -1,11 +1,14 @@
 #include "flecs_wrapper_id.h"
+#include <assert.h>
 
 void flecs_id_pool_init(flecs_id_pool_t *pool, uint32_t max, uint32_t *free_buffer, uint32_t capacity)
 {
+    assert(FLECS_IS_POW2_U32(capacity));
     pool->max = max;
     pool->next_id = 1; // reserve 0 as invalid
     pool->free_ids = free_buffer;
     pool->free_capacity = capacity;
+    pool->free_mask = capacity - 1u;
     pool->free_count = 0;
     pool->free_head = 0;
     pool->free_tail = 0;
@@ -23,7 +26,11 @@ uint32_t flecs_id_pool_alloc(flecs_id_pool_t *pool)
 {
     if (pool->free_count > 0) {
         uint32_t index = pool->free_ids[pool->free_head];
-        pool->free_head = (pool->free_head + 1) % pool->free_capacity;
+        // Optimized ring wrap: free_capacity is enforced power-of-two, so
+        // `(x + 1) & (capacity - 1)` replaces the slower modulo.
+        // Replaced: `(pool->free_head + 1) % pool->free_capacity`.
+        pool->free_head = (pool->free_head + 1) & pool->free_mask;
+        // pool->free_head = (pool->free_head + 1) % pool->free_capacity;
         pool->free_count--;
         return index;
     }
@@ -47,6 +54,10 @@ void flecs_id_pool_free(flecs_id_pool_t *pool, uint32_t index)
     }
 
     pool->free_ids[pool->free_tail] = index;
-    pool->free_tail = (pool->free_tail + 1) % pool->free_capacity;
+    // Optimized ring wrap: free_capacity is enforced power-of-two, so
+    // `(x + 1) & (capacity - 1)` replaces the slower modulo.
+    // Replaced: `(pool->free_tail + 1) % pool->free_capacity`.
+    pool->free_tail = (pool->free_tail + 1) & pool->free_mask;
+    // pool->free_tail = (pool->free_tail + 1) % pool->free_capacity;
     pool->free_count++;
 }

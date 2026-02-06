@@ -34,6 +34,7 @@ void clear_event_table(void) {
 }
 
 #define MAX_OBSERVERS 65536
+FLECS_STATIC_ASSERT(FLECS_IS_POW2_U32(MAX_OBSERVERS), "MAX_OBSERVERS must be power of two");
 static ecs_entity_t observer_ecs_id_table[MAX_OBSERVERS] = {0};
 static uint32_t observer_free_ids[MAX_OBSERVERS] = {0};
 static flecs_id_pool_t observer_id_pool;

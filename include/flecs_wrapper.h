@@ -10,6 +10,7 @@
 #include "flecs_wrapper_pair.h"
 #include "flecs_wrapper_event.h"
 #include "flecs_wrapper_system.h"
+#include "flecs_wrapper_id.h"
 
 #define EXPORT __attribute__((visibility("default")))
 

@@ -16,6 +16,14 @@
 #define FLECS_ID_TYPE_MASK  0xE0000000u
 #define FLECS_ID_INDEX_MASK 0x1FFFFFFFu
 
+#define FLECS_IS_POW2_U32(x) (((x) != 0u) && (((x) & ((x) - 1u)) == 0u))
+
+#ifdef __cplusplus
+#define FLECS_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+#else
+#define FLECS_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#endif
+
 typedef enum flecs_id_type_e {
     FLECS_ID_ENTITY   = 1,
     FLECS_ID_COMPONENT= 2,
@@ -47,6 +55,7 @@ typedef struct flecs_id_pool_s {
 
     uint32_t *free_ids;
     uint32_t free_capacity;
+    uint32_t free_mask; // free_capacity - 1 (requires power-of-two capacity)
     uint32_t free_count;
     uint32_t free_head; // FIFO head
     uint32_t free_tail; // FIFO tail

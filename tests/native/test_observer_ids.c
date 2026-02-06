@@ -57,7 +57,7 @@ int main(void) {
     expect(comp_id != 0, "component_create_tag ObsIdTag2 failed");
 
     observer_id_t id3 = register_simple_observer(comp_id);
-    expect(id3 == 1, "observer id should reset after flecs_fini");
+    expect(flecs_id_index(id3) == 1, "observer id should reset after flecs_fini");
 
     printf("test_observer_ids.c: OK (id1=%u id2=%u id3=%u)\n", id1, id2, id3);
     flecs_fini();

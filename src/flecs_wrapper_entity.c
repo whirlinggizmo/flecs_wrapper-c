@@ -22,6 +22,7 @@
 // Rationale: expose stable 32-bit handles across APIs (e.g., Lua) and for
 // serialization without leaking Flecs-owned ecs_entity_t values.
 #define MAX_ENTITIES 65536
+FLECS_STATIC_ASSERT(FLECS_IS_POW2_U32(MAX_ENTITIES), "MAX_ENTITIES must be power of two");
 static ecs_entity_t entity_ecs_id_table[MAX_ENTITIES] = {0};
 static uint32_t free_entity_ids[MAX_ENTITIES] = {0};
 static flecs_id_pool_t entity_id_pool;

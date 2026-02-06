@@ -16,6 +16,7 @@
 #include "flecs_wrapper_id.h"
 
 #define MAX_SYSTEMS 65536
+FLECS_STATIC_ASSERT(FLECS_IS_POW2_U32(MAX_SYSTEMS), "MAX_SYSTEMS must be power of two");
 static ecs_entity_t system_ecs_id_table[MAX_SYSTEMS] = {0};
 static uint32_t system_free_ids[MAX_SYSTEMS] = {0};
 static flecs_id_pool_t system_id_pool;

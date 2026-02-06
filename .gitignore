@@ -4,3 +4,4 @@
 /tests/nim/out/
 /tests/nim/*_d
 /temp
+/out

@@ -62,7 +62,7 @@ int main(void) {
     expect(pos_id != 0 && vel_id != 0, "component_create failed after reset");
 
     system_id_t id3 = register_simple_system(pos_id, vel_id, "SysIdC");
-    expect(id3 == 1, "system id should reset after flecs_fini");
+    expect(flecs_id_index(id3) == 1, "system id should reset after flecs_fini");
 
     printf("test_system_ids.c: OK (id1=%u id2=%u id3=%u)\n", id1, id2, id3);
     flecs_fini();

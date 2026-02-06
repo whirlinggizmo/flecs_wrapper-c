@@ -13,6 +13,7 @@ extern "C"
 #endif
 
 #define MAX_PAIRS 1024
+FLECS_STATIC_ASSERT(FLECS_IS_POW2_U32(MAX_PAIRS), "MAX_PAIRS must be power of two");
 
     typedef struct PairInfo
     {
