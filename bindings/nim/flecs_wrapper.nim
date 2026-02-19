@@ -18,8 +18,8 @@ const flecsWrapperLibDir = flecsWrapperRoot / "lib"
 {.passC: "-std=c99".}
 {.passC: "-D_GNU_SOURCE".}
 
-# build as a static library (libflecs_wrapper.a)
-{.passL: "-static".}
+# Do not force full static system linking in GDExtension builds.
+# We only want flecs_wrapper code linked into the extension binary.
 
 when defined(FLECS_BUILD_SOURCE):
   # include the source directly vs.linking to a static lib 
@@ -53,13 +53,13 @@ type
   pair_id_t* = uint32
 
   Position* {.importc, nodecl, bycopy.} = object
-    x*, y*: cfloat
+    x*, y*, z*: cfloat
 
   Velocity* {.importc, nodecl, bycopy.} = object
-    x*, y*: cfloat
+    x*, y*, z*: cfloat
 
   Destination* {.importc, nodecl, bycopy.} = object
-    x*, y*, speed*: cfloat
+    x*, y*, z*, speed*: cfloat
 
 {.pop.}
 

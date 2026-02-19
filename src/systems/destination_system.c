@@ -17,8 +17,8 @@ void DestinationSystem(ecs_iter_t *it) {
 
         // early out, before we bother calculating distance
         if (d[i].speed <= 0.0f) {
-            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y});
-            ecs_set(it->world, it->entities[i], Velocity, {0, 0});
+            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y, d[i].z});
+            ecs_set(it->world, it->entities[i], Velocity, {0, 0, 0});
             ecs_remove(it->world, it->entities[i], Destination);
             //printf("d[i].speed <= 0.0f\n");
             continue;
@@ -26,19 +26,20 @@ void DestinationSystem(ecs_iter_t *it) {
 
         float dx = d[i].x - p[i].x;
         float dy = d[i].y - p[i].y;
-        float distance = sqrtf(dx * dx + dy * dy);
+        float dz = d[i].z - p[i].z;
+        float distance = sqrtf(dx * dx + dy * dy + dz * dz);
 
         if (distance <= DEST_EPSILON) {
-            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y});
-            ecs_set(it->world, it->entities[i], Velocity, {0, 0});
+            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y, d[i].z});
+            ecs_set(it->world, it->entities[i], Velocity, {0, 0, 0});
             ecs_remove(it->world, it->entities[i], Destination);
             //printf("distance <= DEST_EPSILON\n");
             continue;
         }
 
         if (distance < MIN_MOVE_DISTANCE) {
-            ecs_set(it->world, it->entities[i], Velocity, {0, 0});
-            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y});
+            ecs_set(it->world, it->entities[i], Velocity, {0, 0, 0});
+            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y, d[i].z});
             ecs_remove(it->world, it->entities[i], Destination);
             //printf("distance < MIN_MOVE_DISTANCE\n");
             continue;
@@ -46,16 +47,17 @@ void DestinationSystem(ecs_iter_t *it) {
 
         float vx = dx / distance * d[i].speed;
         float vy = dy / distance * d[i].speed;
+        float vz = dz / distance * d[i].speed;
 
         float step_distance = it->delta_time * d[i].speed;
 
         if (step_distance >= distance) {
-            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y});
-            ecs_set(it->world, it->entities[i], Velocity, {0, 0});
+            ecs_set(it->world, it->entities[i], Position, {d[i].x, d[i].y, d[i].z});
+            ecs_set(it->world, it->entities[i], Velocity, {0, 0, 0});
             ecs_remove(it->world, it->entities[i], Destination);
             //printf("step_distance >= distance\n");
         } else {
-            ecs_set(it->world, it->entities[i], Velocity, {vx, vy});
+            ecs_set(it->world, it->entities[i], Velocity, {vx, vy, vz});
         }
     }
 }

@@ -13,13 +13,10 @@ ecs_world_t *world = NULL;
 ecs_world_t *init_world() {
     world = ecs_init();
 
-    REGISTER_COMPONENT(world, Position);
-    REGISTER_COMPONENT(world, Velocity);
-    REGISTER_COMPONENT(world, Destination);
     REGISTER_COMPONENT(world, EntityId);
 
-    ECS_SYSTEM(world, DestinationSystem, EcsOnUpdate, Position, Velocity, Destination);
-    ECS_SYSTEM(world, MoveSystem, EcsOnUpdate, Position, Velocity);
+    // Keep only wrapper-internal bookkeeping component registration here.
+    // Gameplay components/systems should be registered explicitly by the host.
 
     return world;
 }

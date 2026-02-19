@@ -220,7 +220,7 @@ component_id_t create_component(const char* name, uint32_t size)
         }),
         .type = {
             .size = size,
-            .alignment = 8,
+            .alignment = 4,
         },
     });
 

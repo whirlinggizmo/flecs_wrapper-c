@@ -1,6 +1,6 @@
 import ./flecs_wrapper
-import ./component
-import ./entity
+import ./flecs_component
+import ./flecs_entity
 
 type
   Pair* = object

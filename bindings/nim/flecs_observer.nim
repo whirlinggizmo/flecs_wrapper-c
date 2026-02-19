@@ -1,7 +1,7 @@
 import std/tables
 
 import ./flecs_wrapper
-import ./component
+import ./flecs_component
 
 type
   ObserverIter* = object
