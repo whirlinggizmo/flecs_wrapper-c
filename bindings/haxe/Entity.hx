@@ -1,13 +1,17 @@
 package hxcore.flecs.flecs_wrapper.bindings.haxe;
 
+#if !macro
 import cpp.Pointer;
 import cpp.UInt32;
+import hxcore.flecs.NativePtr;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.ComponentId;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.EntityId;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper.PairId;
+#end
 
 class Entity {
+#if !macro
   public var id:EntityId;
 
   public function new(id:EntityId) {
@@ -61,33 +65,42 @@ class Entity {
   }
 
   @:generic
-  public function set<T>(comp:Component, value:T):Bool {
+  public function setValue<T>(comp:Component, value:T):Bool {
     var tmp:T = value;
-    var ptr:Pointer<cpp.Void> = untyped __cpp__("::cpp::Pointer<void>((void*)&{0})", tmp);
-    return FlecsWrapper.entitySetComponent(id, comp.id, ptr);
+    var dataPtr:Pointer<cpp.Void> = untyped __cpp__("::cpp::Pointer<void>((void*)&{0})", tmp);
+    return FlecsWrapper.entitySetComponent(id, comp.id, dataPtr);
   }
 
   @:generic
-  public function setPtr<T>(comp:Component, value:Pointer<T>):Bool {
+  public function rawSet<T>(comp:Component, value:Pointer<T>):Bool {
     return FlecsWrapper.entitySetComponent(id, comp.id, cast value);
   }
 
   @:generic
-  public function getPtr<T>(comp:Component):Pointer<T> {
+  public function rawGet<T>(comp:Component):Pointer<T> {
     return cast FlecsWrapper.entityGetComponent(id, comp.id);
   }
 
   @:generic
   public function get<T>(comp:Component):T {
-    var ptr:Pointer<T> = getPtr(comp);
+    var ptr:Pointer<T> = cast FlecsWrapper.entityGetComponent(id, comp.id);
     if (ptr == null) {
       throw 'Component not found for entity ${id} and component ${comp.id}';
     }
     return ptr.ref;
   }
 
+  /**
+   * Optional component access without throwing.
+   *
+   * Flecs/C semantics are naturally pointer-like (`ecs_get` returns NULL).
+   * On cpp targets with `@:component` backing structs, returning `null` *values*
+   * for missing components is awkward for hxcpp compared to nullable pointers.
+   *
+   * Prefer `has(comp)` + `get<T>(comp)` if you want value semantics without pointers.
+   */
   @:generic
-  public function tryGet<T>(comp:Component):Pointer<T> {
+  public function tryGet<T>(comp:Component):NativePtr<T> {
     return cast FlecsWrapper.entityGetComponent(id, comp.id);
   }
 
@@ -143,18 +156,37 @@ class Entity {
     return FlecsWrapper.entityHasPair(id, pairId);
   }
 
-  public function setPairPtr(relation:Dynamic, object:Dynamic, value:Pointer<cpp.Void>):Bool {
+  public function rawSetPair(relation:Dynamic, object:Dynamic, value:Pointer<cpp.Void>):Bool {
     var pairId = resolvePairId(relation, object);
     return FlecsWrapper.entitySetPair(id, pairId, value);
   }
 
-  public function getPairPtr(relation:Dynamic, object:Dynamic):Pointer<cpp.Void> {
+  public function rawGetPair(relation:Dynamic, object:Dynamic):Pointer<cpp.Void> {
     var pairId = resolvePairId(relation, object);
     return FlecsWrapper.entityGetPair(id, pairId);
   }
 
   @:generic
-  public function getPairPtrTyped<T>(relation:Dynamic, object:Dynamic):Pointer<T> {
-    return cast getPairPtr(relation, object);
+  public function rawGetPairTyped<T>(relation:Dynamic, object:Dynamic):Pointer<T> {
+    return cast rawGetPair(relation, object);
+  }
+#end
+
+  /**
+   * Upsert / set component data.
+   *
+   * - `{ field: value, ... }` object literals: expanded at compile time into direct
+   *   field writes on the Flecs-backed struct (requires `ComponentRef<T>` from
+   *   `Component.of(...)` so `T` is known).
+   * - `new MyComponent(...)`: copies bytes into Flecs storage (native upsert).
+   */
+  @:overload(function(selfExpr:haxe.macro.Expr, compExpr:haxe.macro.Expr, valueExpr:haxe.macro.Expr):haxe.macro.Expr {})
+  public macro function set(
+    selfExpr:haxe.macro.Expr,
+    compExpr:haxe.macro.Expr,
+    valueExpr:haxe.macro.Expr,
+    ?notifyExpr:haxe.macro.Expr
+  ):haxe.macro.Expr {
+    return EntityMacros.buildSet(selfExpr, compExpr, valueExpr, notifyExpr);
   }
 }

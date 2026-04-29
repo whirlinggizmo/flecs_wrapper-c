@@ -37,7 +37,7 @@ class TestEntities extends Test {
       posVal.x = 2.0;
       posVal.y = -1.0;
       Assert.isTrue(e.set(pos, posVal));
-      var pPtr:cpp.Pointer<TestEntPos> = e.getPtr(pos);
+      var pPtr:cpp.Pointer<TestEntPos> = e.rawGet(pos);
       Assert.isTrue(pPtr != null);
       var p = pPtr.ref;
       Assert.isTrue(Math.abs(p.x - 2.0) < 1e-6);
@@ -52,8 +52,8 @@ class TestEntities extends Test {
       var relVal = new TestEntPos();
       relVal.x = 7.0;
       relVal.y = 8.0;
-      Assert.isTrue(e.setPairPtr(rel, obj, cast Pointer.addressOf(relVal)));
-      var pairPtr:cpp.Pointer<TestEntPos> = e.getPairPtrTyped(rel, obj);
+      Assert.isTrue(e.rawSetPair(rel, obj, cast Pointer.addressOf(relVal)));
+      var pairPtr:cpp.Pointer<TestEntPos> = e.rawGetPairTyped(rel, obj);
       Assert.isTrue(pairPtr != null);
       Assert.isTrue(Math.abs(pairPtr.ref.x - 7.0) < 1e-6);
       Assert.isTrue(Math.abs(pairPtr.ref.y - 8.0) < 1e-6);

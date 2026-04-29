@@ -58,7 +58,7 @@ class ObserverIter {
     return -1;
   }
 
-  public function colPtr(compId:ComponentId):Pointer<cpp.Void> {
+  public function rawColumnPtr(compId:ComponentId):Pointer<cpp.Void> {
     var idx = colIndex(compId);
     if (idx < 0) {
       return null;
@@ -69,7 +69,7 @@ class ObserverIter {
     return cast columns[idx];
   }
 
-  @:generic public inline function colPtrTyped<T>(compId:ComponentId):Pointer<T> {
+  @:generic public inline function rawColumnPtrTyped<T>(compId:ComponentId):Pointer<T> {
     var idx = colIndex(compId);
     if (idx < 0) {
       return null;
@@ -80,16 +80,8 @@ class ObserverIter {
     return cast columns[idx];
   }
 
-  public function colPtrByComponent(comp:Component):Pointer<cpp.Void> {
-    return colPtr(comp.id);
-  }
-
-  @:generic public inline function colPtrByComponentTyped<T>(comp:Component):Pointer<T> {
-    return colPtrTyped(comp.id);
-  }
-
-  public function col(compId:ComponentId, i:Int):Pointer<cpp.Void> {
-    var ptrs:Pointer<cpp.Void> = colPtr(compId);
+  public function rawColumn(compId:ComponentId, i:Int):Pointer<cpp.Void> {
+    var ptrs:Pointer<cpp.Void> = rawColumnPtr(compId);
     if (ptrs == null) {
       return null;
     }
@@ -100,8 +92,8 @@ class ObserverIter {
     return cast ptrs.add(i);
   }
 
-  @:generic public inline function colTyped<T>(compId:ComponentId, i:Int):Pointer<T> {
-    var ptrs:Pointer<T> = colPtrTyped(compId);
+  @:generic public inline function rawColumnTyped<T>(compId:ComponentId, i:Int):Pointer<T> {
+    var ptrs:Pointer<T> = rawColumnPtrTyped(compId);
     if (ptrs == null) {
       return null;
     }
@@ -112,12 +104,28 @@ class ObserverIter {
     return cast ptrs.add(i);
   }
 
-  public function colByComponent(comp:Component, i:Int):Pointer<cpp.Void> {
-    return col(comp.id, i);
+  public function rawComponentColumn(comp:Component, i:Int):Pointer<cpp.Void> {
+    return rawColumn(comp.id, i);
   }
 
-  @:generic public inline function colByComponentTyped<T>(comp:Component, i:Int):Pointer<T> {
-    return colTyped(comp.id, i);
+  @:generic public inline function rawComponentColumnTyped<T>(comp:Component, i:Int):Pointer<T> {
+    return rawColumnTyped(comp.id, i);
+  }
+
+  public inline function tryColumn(comp:Component, i:Int):Dynamic {
+    var ptr:Pointer<cpp.Void> = rawComponentColumn(comp, i);
+    if (ptr == null) {
+      return null;
+    }
+    return cast(cast ptr, Pointer<Dynamic>).ref;
+  }
+
+  public inline function column(comp:Component, i:Int):Dynamic {
+    var value:Dynamic = tryColumn(comp, i);
+    if (value == null) {
+      throw 'Column value not found for component ${comp.name}';
+    }
+    return value;
   }
 }
 

@@ -40,9 +40,9 @@ class ComponentMacro {
 		if (nativeName == null) {
 			Context.error('Component.ofType() requires a class annotated with @:component (got: ${typePath})', Context.currentPos());
 		}
-		return macro hxcore.flecs.flecs_wrapper.bindings.haxe.Component.create(
-			$v{nativeName},
-			cpp.Native.sizeof($typeExpr)
+		var structCt = Context.toComplexType(Context.getType(typePath));
+		return macro new hxcore.flecs.flecs_wrapper.bindings.haxe.ComponentRef<$structCt>(
+			hxcore.flecs.flecs_wrapper.bindings.haxe.Component.create($v{nativeName}, cpp.Native.sizeof($typeExpr))
 		);
 	}
 

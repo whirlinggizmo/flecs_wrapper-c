@@ -51,8 +51,8 @@ class TestSystems extends Test {
       var sysId = System.addSystemIds("HaxeMove", [pos.id, vel.id], function(it) {
         var count:Int = cast it.count;
         for (i in 0...count) {
-          var p:cpp.Pointer<TestSysPos> = it.colTyped(pos.id, i);
-          var v:cpp.Pointer<TestSysVel> = it.colTyped(vel.id, i);
+          var p:cpp.Pointer<TestSysPos> = it.rawColumnTyped(pos.id, i);
+          var v:cpp.Pointer<TestSysVel> = it.rawColumnTyped(vel.id, i);
           if (p != null && v != null) {
             p.ref.x += v.ref.x * it.dt;
             sysSeen++;
@@ -62,7 +62,7 @@ class TestSystems extends Test {
       Assert.isTrue(sysId != 0);
 
       hxcore.flecs.flecs_wrapper.bindings.haxe.Flecs.progress(0.5);
-      var p2Ptr:cpp.Pointer<TestSysPos> = e.getPtr(pos);
+      var p2Ptr:cpp.Pointer<TestSysPos> = e.rawGet(pos);
       Assert.isTrue(p2Ptr != null);
       var p2 = p2Ptr.ref;
       Assert.isTrue(Math.abs(p2.x - 1.0) < 1e-6);

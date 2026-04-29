@@ -55,7 +55,7 @@ class SystemIter {
     return -1;
   }
 
-  public function colPtr(compId:ComponentId):Pointer<cpp.Void> {
+  public function rawColumnPtr(compId:ComponentId):Pointer<cpp.Void> {
     var idx = colIndex(compId);
     if (idx < 0) {
       return null;
@@ -67,7 +67,7 @@ class SystemIter {
   }
 
   @:generic
-  public inline function colPtrTyped<T>(compId:ComponentId):Pointer<T> {
+  public inline function rawColumnPtrTyped<T>(compId:ComponentId):Pointer<T> {
     var idx = colIndex(compId);
     if (idx < 0) {
       return null;
@@ -78,17 +78,8 @@ class SystemIter {
     return cast columns[idx];
   }
 
-  public function colPtrByComponent(comp:Component):Pointer<cpp.Void> {
-    return colPtr(comp.id);
-  }
-
-  @:generic
-  public inline function colPtrByComponentTyped<T>(comp:Component):Pointer<T> {
-    return colPtrTyped(comp.id);
-  }
-
-  public function col(compId:ComponentId, i:Int):Pointer<cpp.Void> {
-    var ptrs:Pointer<cpp.Void> = colPtr(compId);
+  public function rawColumn(compId:ComponentId, i:Int):Pointer<cpp.Void> {
+    var ptrs:Pointer<cpp.Void> = rawColumnPtr(compId);
     if (ptrs == null) {
       return null;
     }
@@ -100,8 +91,8 @@ class SystemIter {
   }
 
   @:generic
-  public inline function colTyped<T>(compId:ComponentId, i:Int):Pointer<T> {
-    var ptrs:Pointer<T> = colPtrTyped(compId);
+  public inline function rawColumnTyped<T>(compId:ComponentId, i:Int):Pointer<T> {
+    var ptrs:Pointer<T> = rawColumnPtrTyped(compId);
     if (ptrs == null) {
       return null;
     }
@@ -112,53 +103,116 @@ class SystemIter {
     return cast ptrs.add(i);
   }
 
-  public function colByComponent(comp:Component, i:Int):Pointer<cpp.Void> {
-    return col(comp.id, i);
+  public function rawComponentColumn(comp:Component, i:Int):Pointer<cpp.Void> {
+    return rawColumn(comp.id, i);
   }
 
   @:generic
-  public inline function colByComponentTyped<T>(comp:Component, i:Int):Pointer<T> {
-    return colTyped(comp.id, i);
+  public inline function rawComponentColumnTyped<T>(comp:Component, i:Int):Pointer<T> {
+    return rawColumnTyped(comp.id, i);
+  }
+
+  public inline function tryColumn(comp:Component, i:Int):Dynamic {
+    var ptr:Pointer<cpp.Void> = rawComponentColumn(comp, i);
+    if (ptr == null) {
+      return null;
+    }
+    return cast(cast ptr, Pointer<Dynamic>).ref;
+  }
+
+  public inline function column(comp:Component, i:Int):Dynamic {
+    var value:Dynamic = tryColumn(comp, i);
+    if (value == null) {
+      throw 'Column value not found for component ${comp.name}';
+    }
+    return value;
   }
 
   @:generic
   public inline function each1<A>(
     a:Component,
-    cb:(a:Pointer<A>) -> Void
+    cb:(a:A) -> Void
   ):Void {
     var n:Int = cast count;
-    var pa:Pointer<A> = colPtrTyped(a.id);
+    var pa:Pointer<A> = rawColumnPtrTyped(a.id);
+    if (pa == null) {
+      return;
+    }
     for (i in 0...n) {
-      cb(pa.add(i));
+      var av = pa.add(i).ref;
+      cb(cast av);
+      pa.add(i).ref = av;
     }
   }
 
   @:generic
   public inline function each2<A, B>(
     a:Component, b:Component,
-    cb:(a:Pointer<A>, b:Pointer<B>) -> Void
+    cb:(a:A, b:B) -> Void
   ):Void {
     var n:Int = cast count;
-    var pa:Pointer<A> = colPtrTyped(a.id);
-    var pb:Pointer<B> = colPtrTyped(b.id);
+    var pa:Pointer<A> = rawColumnPtrTyped(a.id);
+    var pb:Pointer<B> = rawColumnPtrTyped(b.id);
+    if (pa == null || pb == null) {
+      return;
+    }
     for (i in 0...n) {
-      cb(pa.add(i), pb.add(i));
+      var av = pa.add(i).ref;
+      var bv = pb.add(i).ref;
+      cb(cast av, cast bv);
+      pa.add(i).ref = av;
+      pb.add(i).ref = bv;
     }
   }
 
   @:generic
   public inline function each3<A, B, C>(
     a:Component, b:Component, c:Component,
-    cb:(a:Pointer<A>, b:Pointer<B>, c:Pointer<C>) -> Void
+    cb:(a:A, b:B, c:C) -> Void
   ):Void {
     var n:Int = cast count;
-    var pa:Pointer<A> = colPtrTyped(a.id);
-    var pb:Pointer<B> = colPtrTyped(b.id);
-    var pc:Pointer<C> = colPtrTyped(c.id);
+    var pa:Pointer<A> = rawColumnPtrTyped(a.id);
+    var pb:Pointer<B> = rawColumnPtrTyped(b.id);
+    var pc:Pointer<C> = rawColumnPtrTyped(c.id);
+    if (pa == null || pb == null || pc == null) {
+      return;
+    }
     for (i in 0...n) {
-      cb(pa.add(i), pb.add(i), pc.add(i));
+      var av = pa.add(i).ref;
+      var bv = pb.add(i).ref;
+      var cv = pc.add(i).ref;
+      cb(cast av, cast bv, cast cv);
+      pa.add(i).ref = av;
+      pb.add(i).ref = bv;
+      pc.add(i).ref = cv;
     }
   }
+
+  #if display
+  // LSP/display mode fallback for it.each([...], cb) when extension macros
+  // are not fully resolved by the language server.
+  public inline function each(components:Array<Component>, cb:Dynamic):Void {
+    if (components == null) {
+      return;
+    }
+    switch (components.length) {
+      case 0:
+        var n:Int = cast count;
+        for (_ in 0...n) {
+          cb();
+        }
+      case 1:
+        each1(components[0], cb);
+      case 2:
+        each2(components[0], components[1], cb);
+      case 3:
+        each3(components[0], components[1], components[2], cb);
+      default:
+        throw "it.each currently supports 0-3 components";
+    }
+  }
+  #end
+
 }
 
 typedef SystemIterCallback = (it:SystemIter) -> Void;
@@ -422,4 +476,5 @@ class System {
       callback
     );
   }
+
 }

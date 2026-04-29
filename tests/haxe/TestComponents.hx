@@ -43,7 +43,7 @@ class TestComponents extends Test {
       posVal.x = 1.5;
       posVal.y = -2.0;
       Assert.isTrue(e.set(pos, posVal));
-      var pPtr:cpp.Pointer<TestPos> = e.getPtr(pos);
+      var pPtr:cpp.Pointer<TestPos> = e.rawGet(pos);
       Assert.isTrue(pPtr != null);
       var p = pPtr.ref;
       Assert.isTrue(Math.abs(p.x - 1.5) < 1e-6);
