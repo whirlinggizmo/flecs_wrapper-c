@@ -62,9 +62,9 @@ class Entity {
 
   @:generic
   public function set<T>(comp:Component, value:T):Bool {
-    var tmp = value;
-    var ptr = Pointer.addressOf(tmp);
-    return FlecsWrapper.entitySetComponent(id, comp.id, cast ptr);
+    var tmp:T = value;
+    var ptr:Pointer<cpp.Void> = untyped __cpp__("::cpp::Pointer<void>((void*)&{0})", tmp);
+    return FlecsWrapper.entitySetComponent(id, comp.id, ptr);
   }
 
   @:generic
@@ -84,6 +84,11 @@ class Entity {
       throw 'Component not found for entity ${id} and component ${comp.id}';
     }
     return ptr.ref;
+  }
+
+  @:generic
+  public function tryGet<T>(comp:Component):Pointer<T> {
+    return cast FlecsWrapper.entityGetComponent(id, comp.id);
   }
 
   public function mark(comp:Dynamic):Void {

@@ -3,9 +3,49 @@ package hxcore.flecs.flecs_wrapper.bindings.haxe;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+import haxe.macro.Type;
 #end
 
 class ComponentMacro {
+	public static macro function ofType(typeExpr:Expr):Expr {
+		// Resolve the class type from the expression (e.g. `Position` used as a type name)
+		var typePath = switch (typeExpr.expr) {
+			case EConst(CIdent(name)): name;
+			case EField(_, name): name;
+			default: null;
+		};
+		if (typePath == null) {
+			Context.error("Component.ofType() requires a class type name", Context.currentPos());
+		}
+
+		// Look up the class type by name
+		var classType = switch (Context.getType(typePath)) {
+			case TInst(r, _): r.get();
+			default: null;
+		};
+		if (classType == null) {
+			Context.error('Component.ofType() requires a class type, got: ${typePath}', Context.currentPos());
+		}
+
+		var nativeName:String = null;
+		for (meta in classType.meta.get()) {
+			if (meta.name == ":component" && meta.params != null && meta.params.length > 0) {
+				switch (meta.params[0].expr) {
+					case EConst(CString(s)): nativeName = s;
+					default:
+				}
+				break;
+			}
+		}
+		if (nativeName == null) {
+			Context.error('Component.ofType() requires a class annotated with @:component (got: ${typePath})', Context.currentPos());
+		}
+		return macro hxcore.flecs.flecs_wrapper.bindings.haxe.Component.create(
+			$v{nativeName},
+			cpp.Native.sizeof($typeExpr)
+		);
+	}
+
 	public static macro function register():Void {
 		haxe.macro.Compiler.addGlobalMetadata(
 			"",
@@ -38,57 +78,21 @@ class ComponentMacro {
 			return Context.getBuildFields();
 		}
 
+		// Don't process classes in the flecs_wrapper bindings package itself
+		var pkg = cls.pack.join(".");
+		if (StringTools.startsWith(pkg, "hxcore.flecs")) {
+			return Context.getBuildFields();
+		}
+
 		cls.meta.add(":structAccess", [], cls.pos);
 		cls.meta.add(":structInit", [], cls.pos);
 		cls.meta.add(":nativeGen", [], cls.pos);
 		cls.meta.add(":keep", [], cls.pos);
 		cls.meta.add(":native", [macro $v{nativeName}], cls.pos);
+		// Emit a no-arg default constructor in the C++ header so that cpp::Struct<T>
+		// and cpp::Pointer<T> (which call T()) can be instantiated.
+		cls.meta.add(":headerClassCode", [macro $v{'${nativeName}() {}\n'}], cls.pos);
 
-		var fields = Context.getBuildFields();
-
-		// Inject positional constructor if none exists
-		// NOTE:  this works, but the haxe linter doesn't see it, so it complains about 
-		// missing consructor (even though this will inject one).  So we require a constructor
-		// to be defined in the class.  FWIW, it gives the component the ability to set a default value
-		// for each field.
-		/*
-		var hasNew = Lambda.exists(fields, f -> f.name == "new");
-		if (!hasNew) {
-			var varFields = fields.filter(f -> switch (f.kind) {
-				case FVar(_, _): true;
-				default: false;
-			});
-
-			var args:Array<FunctionArg> = varFields.map(f -> {
-				var type = switch (f.kind) {
-					case FVar(t, _): t;
-					default: null;
-				};
-				({
-					name: f.name,
-					opt: true,
-					type: type,
-					value: macro 0
-				} : FunctionArg);
-			});
-
-			var body:Array<Expr> = varFields.map(f -> {
-				var name = f.name;
-				macro this.$name = $i{name};
-			});
-
-			fields.push({
-				name: "new",
-				pos: cls.pos,
-				access: [APublic],
-				kind: FFun({
-					args: args,
-					ret: null,
-					expr: macro $b{body}
-				})
-			});
-		}
-*/
-		return fields;
+		return Context.getBuildFields();
 	}
 }

@@ -53,4 +53,5 @@ class Component {
     }
     return new Component(name, id, 0);
   }
+
 }

@@ -120,6 +120,45 @@ class SystemIter {
   public inline function colByComponentTyped<T>(comp:Component, i:Int):Pointer<T> {
     return colTyped(comp.id, i);
   }
+
+  @:generic
+  public inline function each1<A>(
+    a:Component,
+    cb:(a:Pointer<A>) -> Void
+  ):Void {
+    var n:Int = cast count;
+    var pa:Pointer<A> = colPtrTyped(a.id);
+    for (i in 0...n) {
+      cb(pa.add(i));
+    }
+  }
+
+  @:generic
+  public inline function each2<A, B>(
+    a:Component, b:Component,
+    cb:(a:Pointer<A>, b:Pointer<B>) -> Void
+  ):Void {
+    var n:Int = cast count;
+    var pa:Pointer<A> = colPtrTyped(a.id);
+    var pb:Pointer<B> = colPtrTyped(b.id);
+    for (i in 0...n) {
+      cb(pa.add(i), pb.add(i));
+    }
+  }
+
+  @:generic
+  public inline function each3<A, B, C>(
+    a:Component, b:Component, c:Component,
+    cb:(a:Pointer<A>, b:Pointer<B>, c:Pointer<C>) -> Void
+  ):Void {
+    var n:Int = cast count;
+    var pa:Pointer<A> = colPtrTyped(a.id);
+    var pb:Pointer<B> = colPtrTyped(b.id);
+    var pc:Pointer<C> = colPtrTyped(c.id);
+    for (i in 0...n) {
+      cb(pa.add(i), pb.add(i), pc.add(i));
+    }
+  }
 }
 
 typedef SystemIterCallback = (it:SystemIter) -> Void;
