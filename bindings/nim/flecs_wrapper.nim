@@ -11,7 +11,8 @@ import std/os
 const thisDir = currentSourcePath().parentDir()
 const flecsWrapperRoot = thisDir / ".." / ".."
 const flecsWrapperIncludeDir = flecsWrapperRoot / "include"
-const flecsWrapperSrcDir = flecsWrapperRoot / "src"
+when defined(FLECS_BUILD_SOURCE):
+  const flecsWrapperSrcDir = flecsWrapperRoot / "src"
 const flecsWrapperLibDir = flecsWrapperRoot / "lib"
 
 {.passC: "-I" & flecsWrapperIncludeDir.}

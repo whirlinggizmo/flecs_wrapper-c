@@ -1,4 +1,7 @@
 // destination_system.c
+// NOTE: this file is intentionally not included in the build so as to not collide with user versions
+/*
+
 #include "flecs.h"
 
 #include "flecs_wrapper_components.h"
@@ -61,3 +64,4 @@ void DestinationSystem(ecs_iter_t *it) {
         }
     }
 }
+*/

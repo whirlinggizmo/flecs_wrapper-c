@@ -8,7 +8,7 @@
 #include "flecs_wrapper_id.h"
 
 // components
-#include "flecs_wrapper_components.h"
+//#include "flecs_wrapper_components.h"
 
 #include "flecs_wrapper_world.h" // for world access
 

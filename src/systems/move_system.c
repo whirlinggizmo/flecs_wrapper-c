@@ -1,5 +1,7 @@
 // move_system.c
+// NOTE: this file is intentionally not included in the build so as to not collide with user versions
 
+/*
 #include "flecs.h"
 #include "flecs_wrapper_components.h"
 #include "systems/move_system.h"
@@ -34,3 +36,4 @@ void MoveSystem(ecs_iter_t *it) {
         }
     }
 }
+*/

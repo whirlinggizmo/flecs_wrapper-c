@@ -3,6 +3,16 @@
 
 #include "flecs.h"
 
+typedef struct EntityId {
+    uint32_t value;
+} EntityId;
+extern ECS_COMPONENT_DECLARE(EntityId);
+
+// 
+// NOTE: these are not included in the build so as to not collide with user versions
+//
+/*
+
 //
 // NOTE:Don't forget to update flecs_wrapper_components.c for the actual component declarations
 //
@@ -15,10 +25,7 @@ typedef struct Destination {
 } Destination;
 extern ECS_COMPONENT_DECLARE(Destination);
 
-typedef struct EntityId {
-    uint32_t value;
-} EntityId;
-extern ECS_COMPONENT_DECLARE(EntityId);
+
 
 typedef struct Position {
     float x;
@@ -34,4 +41,5 @@ typedef struct Velocity {
 } Velocity;
 extern ECS_COMPONENT_DECLARE(Velocity);
 
+*/
 #endif // FLECS_WRAPPER_COMPONENTS_H

@@ -239,7 +239,21 @@ class FlecsWrapper {
   }
 }
 
+
 // Known components (from flecs_wrapper_components.h)
+@:structAccess
+@:structInit
+@:nativeGen
+@:keep
+@:native("EntityId")
+class EntityIdComponent {
+  public var value:UInt32;
+}
+
+
+// NOTE: These are currently disabled because we removed them from flecs_wrapper_components.h to avoid collisions with user-defined components
+// User has to define them themselves.
+/*
 @:structAccess
 @:structInit
 @:nativeGen
@@ -247,10 +261,12 @@ class FlecsWrapper {
 class Position {
   public var x:Float32;
   public var y:Float32;
+  public var z:Float32;
 
-  public function new(x:Float32 = 0, y:Float32 = 0) {
+  public function new(x:Float32 = 0, y:Float32 = 0, z:Float32 = 0) {
     this.x = x;
     this.y = y;
+    this.z = z;
   }
 }
 
@@ -261,33 +277,31 @@ class Position {
 class Velocity {
   public var x:Float32;
   public var y:Float32;
+  public var z:Float32;
 
-  public function new(x:Float32 = 0, y:Float32 = 0) {
+  public function new(x:Float32 = 0, y:Float32 = 0, z:Float32 = 0) {
     this.x = x;
     this.y = y;
+    this.z = z;
   }
 }
 
 @:structAccess
 @:structInit
 @:nativeGen
+@:keep
 @:native("Destination")
 class Destination {
   public var x:Float32;
   public var y:Float32;
+  public var z:Float32;
   public var speed:Float32;
 
-  public function new(x:Float32 = 0, y:Float32 = 0, speed:Float32 = 0) {
+  public function new(x:Float32 = 0, y:Float32 = 0, z:Float32 = 0, speed:Float32 = 0) {
     this.x = x;
     this.y = y;
+    this.z = z;
     this.speed = speed;
   }
 }
-
-@:structAccess
-@:structInit
-@:nativeGen
-@:native("EntityId")
-class EntityIdComponent {
-  public var value:UInt32;
-}
+*/
