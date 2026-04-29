@@ -1,5 +1,6 @@
 package hxcore.flecs.flecs_wrapper.bindings.haxe;
 
+#if !macro
 import cpp.Float32;
 import cpp.UInt32;
 import cpp.ConstCharStar;
@@ -7,21 +8,38 @@ import cpp.RawPointer;
 import cpp.RawConstPointer;
 import cpp.Pointer;
 import cpp.ConstPointer;
+#end
 
 // Type alias for pointer-sized unsigned integer
-#if cpp_64
-typedef UIntPtr = cpp.UInt64;
+#if !macro
+  #if cpp_64
+  typedef UIntPtr = cpp.UInt64;
+  #else
+  typedef UIntPtr = cpp.UInt32;
+  #end
 #else
-typedef UIntPtr = cpp.UInt32;
+typedef UIntPtr = Int;
 #end
 
 // Wrapper ID types (stable handles, not ecs_entity_t)
+#if !macro
 typedef EntityId = UInt32;
+#else
+typedef EntityId = Int;
+#end
+#if !macro
 typedef ComponentId = UInt32;
 typedef EventId = UInt32;
 typedef ObserverId = UInt32;
 typedef SystemId = UInt32;
 typedef PairId = UInt32;
+#else
+typedef ComponentId = Int;
+typedef EventId = Int;
+typedef ObserverId = Int;
+typedef SystemId = Int;
+typedef PairId = Int;
+#end
 
 // Native callback signatures (match flecs_wrapper.h)
 typedef SystemCallbackNative = cpp.Callable<

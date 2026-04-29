@@ -1,14 +1,25 @@
 package hxcore.flecs.flecs_wrapper.bindings.haxe;
 
+#if !macro
 import cpp.UInt32;
 import hxcore.flecs.flecs_wrapper.bindings.haxe.FlecsWrapper;
+#end
 
 class Component {
   public var name:String;
-  public var id:UInt32;
-  public var size:UInt32;
+  #if !macro
+  public var id:cpp.UInt32;
+  public var size:cpp.UInt32;
+  #else
+  public var id:Int;
+  public var size:Int;
+  #end
 
-  public function new(name:String, id:UInt32, size:UInt32) {
+  #if !macro
+  public function new(name:String, id:cpp.UInt32, size:cpp.UInt32) {
+  #else
+  public function new(name:String, id:Int, size:Int) {
+  #end
     this.name = name;
     this.id = id;
     this.size = size;
@@ -18,7 +29,11 @@ class Component {
     return FlecsWrapper.componentIsTag(id);
   }
 
-  public static inline function idByName(name:String):UInt32 {
+  #if !macro
+  public static inline function idByName(name:String):cpp.UInt32 {
+  #else
+  public static inline function idByName(name:String):Int {
+  #end
     return FlecsWrapper.componentId(name);
   }
 
@@ -52,6 +67,10 @@ class Component {
       throw 'componentCreateTag failed for ${name}';
     }
     return new Component(name, id, 0);
+  }
+
+  public static macro function of(typeExpr:haxe.macro.Expr):haxe.macro.Expr {
+    return hxcore.flecs.flecs_wrapper.bindings.haxe.ComponentMacro.ofType(typeExpr);
   }
 
 }
