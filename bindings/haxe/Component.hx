@@ -15,25 +15,18 @@ class Component {
   public var size:Int;
   #end
 
-  #if !macro
-  public function new(name:String, id:cpp.UInt32, size:cpp.UInt32) {
-  #else
-  public function new(name:String, id:Int, size:Int) {
-  #end
+  public function new(name:String, id:#if !macro cpp.UInt32 #else Int #end, size:#if !macro cpp.UInt32 #else Int #end) {
     this.name = name;
     this.id = id;
     this.size = size;
   }
 
+  #if !macro
   public inline function isTag():Bool {
     return FlecsWrapper.componentIsTag(id);
   }
 
-  #if !macro
   public static inline function idByName(name:String):cpp.UInt32 {
-  #else
-  public static inline function idByName(name:String):Int {
-  #end
     return FlecsWrapper.componentId(name);
   }
 
@@ -68,9 +61,6 @@ class Component {
     }
     return new Component(name, id, 0);
   }
-
-  public static macro function of(typeExpr:haxe.macro.Expr):haxe.macro.Expr {
-    return hxcore.flecs.flecs_wrapper.bindings.haxe.ComponentMacro.ofType(typeExpr);
-  }
+  #end
 
 }

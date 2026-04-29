@@ -42,6 +42,7 @@ typedef PairId = Int;
 #end
 
 // Native callback signatures (match flecs_wrapper.h)
+#if !macro
 typedef SystemCallbackNative = cpp.Callable<
   (
     entityIds:RawConstPointer<EntityId>,
@@ -68,6 +69,7 @@ typedef ObserverCallbackNative = cpp.Callable<
     callbackId:UInt32
   ) -> Void
 >;
+#end
 
 @:buildXml('
 <echo value="Compiling Flecs (wrapper)..." />
