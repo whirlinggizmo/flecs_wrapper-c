@@ -10,6 +10,7 @@
 #include "flecs_wrapper_world.h" // for world access
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_id.h"
+#include <inttypes.h>
 
 // components
 
@@ -103,7 +104,7 @@ uint32_t set_entity_id(entity_id_t entity_id, ecs_entity_t entity_ecs_id)
     }
     if (entity_ecs_id_table[entity_id] != 0)
     {
-        fprintf(stderr, "Unable to set ecs_id for entity_id %u, already set (currently %lu)\n", entity_id, entity_ecs_id_table[entity_id]);
+        fprintf(stderr, "Unable to set ecs_id for entity_id %u, already set (currently %" PRIu64 ")\n", entity_id, (uint64_t)entity_ecs_id_table[entity_id]);
         return 0;
     }
     entity_ecs_id_table[entity_id] = entity_ecs_id;

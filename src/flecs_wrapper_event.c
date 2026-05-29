@@ -11,6 +11,7 @@
 #include "flecs_wrapper_id.h"
 
 #include "flecs_wrapper_world.h" // for world access
+#include <inttypes.h>
 
 
 // there are fixed number of event types, so we'll just add them directly
@@ -84,7 +85,7 @@ uint32_t get_event_id(const ecs_entity_t ecs_id)
             return i;
         }
     }
-    fprintf(stderr, "Unable to get event_id for ecs_id %lu (not found)\n", ecs_id);
+    fprintf(stderr, "Unable to get event_id for ecs_id %" PRIu64 " (not found)\n", (uint64_t)ecs_id);
     return 0;
 }
 ecs_entity_t get_event_ecs_id(uint32_t event_id)

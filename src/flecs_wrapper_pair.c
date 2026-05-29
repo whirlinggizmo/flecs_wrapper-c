@@ -5,6 +5,7 @@
 #include "flecs_wrapper_component.h"
 #include "flecs_wrapper_entity.h"
 #include "flecs_wrapper_world.h"
+#include <inttypes.h>
 
 #define PAIR_HASH_SIZE (MAX_PAIRS * 2)
 
@@ -108,7 +109,7 @@ static pair_id_t register_pair(ecs_entity_t relation_ecs_id, ecs_entity_t object
     ecs_id_t pair_ecs_id = ecs_make_pair(relation_ecs_id, object_ecs_id);
     if (pair_ecs_id == 0)
     {
-        fprintf(stderr, "Unable to make pair (relation %lu, object %lu)\n", relation_ecs_id, object_ecs_id);
+        fprintf(stderr, "Unable to make pair (relation %" PRIu64 ", object %" PRIu64 ")\n", (uint64_t)relation_ecs_id, (uint64_t)object_ecs_id);
         return 0;
     }
 

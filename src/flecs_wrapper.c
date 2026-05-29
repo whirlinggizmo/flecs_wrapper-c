@@ -9,6 +9,7 @@
 #include "flecs_wrapper_event.h"
 #include "flecs_wrapper_system.h"
 #include "flecs_wrapper_pair.h"
+#include <inttypes.h>
 
 static void flecs_wrapper_reset_state(void)
 {

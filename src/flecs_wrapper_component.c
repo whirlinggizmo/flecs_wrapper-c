@@ -11,6 +11,7 @@
 //#include "flecs_wrapper_components.h"
 
 #include "flecs_wrapper_world.h" // for world access
+#include <inttypes.h>
 
 
 // Lookup tables:
@@ -108,7 +109,7 @@ component_id_t get_component_id(ecs_entity_t ecs_id)
             return component_ecs_id_values[i];
         i = (i + 1) & (COMPONENT_HASH_SIZE - 1);
     }
-    fprintf(stderr, "Unable to get component_id for ecs_id %lu (not found)\n", ecs_id);
+    fprintf(stderr, "Unable to get component_id for ecs_id %" PRIu64 " (not found)\n", (uint64_t)ecs_id);
     return 0;
 }
 
