@@ -15,6 +15,7 @@ TEST_DIR            = ./tests
 # Output
 TARGET_DYNAMIC      = $(BIN_DIR)/libflecs_wrapper.so
 TARGET_STATIC       = $(BIN_DIR)/libflecs_wrapper.a
+TARGET_WASM_STATIC	= $(BIN_DIR)/libflecs_wrapper.wasm.a
 TEST_SYSTEM_EX      = $(TEST_BIN_DIR)/test_system_ex
 TEST_OBSERVER_EX    = $(TEST_BIN_DIR)/test_observer_ex
 TEST_OBSERVER_IDS   = $(TEST_BIN_DIR)/test_observer_ids
@@ -26,14 +27,16 @@ WRAPPER_SRC = $(call rwildcard,$(WRAPPER_SRC_DIR),*.c)
 
 # Compiler settings
 CC      = gcc
+EMCC	= emcc
 CFLAGS  = -fPIC -Wall -O2 -fvisibility=default 
 LDFLAGS = -shared
 
 # Default target: build both static and dynamic libs
-all: $(TARGET_DYNAMIC) $(TARGET_STATIC)
+all: $(TARGET_DYNAMIC) $(TARGET_STATIC) $(TARGET_WASM_STATIC)
 
 static: $(TARGET_STATIC)
 dynamic: $(TARGET_DYNAMIC)
+wasm:$(TARGET_WASM_STATIC)
 
 # Build dynamic library
 $(TARGET_DYNAMIC): $(WRAPPER_SRC)
@@ -47,15 +50,24 @@ $(TARGET_STATIC): $(WRAPPER_SRC)
 	$(foreach src,$(WRAPPER_SRC),$(CC) $(CFLAGS) -I$(WRAPPER_INC_DIR) -c $(src) -o $(WRAPPER_BUILD_DIR)/$(notdir $(basename $(src))).o;)
 	ar rcs $(TARGET_STATIC) $(WRAPPER_BUILD_DIR)/*.o
 
+# Build wasm library
+$(TARGET_WASM_STATIC): $(WRAPPER_SRC)
+	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(WRAPPER_BUILD_DIR)
+	$(foreach src,$(WRAPPER_SRC),$(EMCC) $(CFLAGS) -I$(WRAPPER_INC_DIR) -c $(src) -o $(WRAPPER_BUILD_DIR)/$(notdir $(basename $(src))).o;)
+	ar rcs $(TARGET_WASM_STATIC) $(WRAPPER_BUILD_DIR)/*.o
+
+
 # Clean build artifacts
 clean:
-	rm -f $(TARGET_DYNAMIC) $(TARGET_STATIC)
+	rm -f $(TARGET_DYNAMIC) $(TARGET_STATIC) $(TARGET_WASM_STATIC)
 	rm -rf $(BUILD_DIR) $(TEST_BIN_DIR)
 
 # Print build variables (for debugging)
 print-srcs:
 	@echo "TARGET_DYNAMIC: $(TARGET_DYNAMIC)"
 	@echo "TARGET_STATIC: $(TARGET_STATIC)"
+	@echo "TARGET_WASM_STATIC: $(TARGET_WASM_STATIC)"	
 	@echo "BUILD_DIR: $(BUILD_DIR)"
 	@echo "BIN_DIR: $(BIN_DIR)"
 	@echo "TEST_BIN_DIR: $(TEST_BIN_DIR)"
